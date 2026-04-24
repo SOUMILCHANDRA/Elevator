@@ -231,6 +231,12 @@
     @keyframes buzz { 0%,100% { box-shadow: 0 0 8px var(--accent-glow); } 50% { box-shadow: 0 0 20px var(--accent-glow); } }
     .elevator-car.exec-presence {
       border-color: var(--exec);
+      animation: flicker 2s infinite;
+    }
+
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+      20%, 22%, 24%, 55% { opacity: 0.8; }
     }
 
     /* right hud */
