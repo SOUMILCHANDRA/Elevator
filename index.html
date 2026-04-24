@@ -400,8 +400,88 @@
   <div id="main-container">
     <div id="floor-panel"></div>
     <div id="shaft-area"></div>
+    <!-- HUD -->
     <div id="hud">
-      <!-- HUD placeholders -->
+      <div class="hud-group">
+        <div class="hud-label">COMPLIANCE</div>
+        <div class="hud-value" id="compliance-val">100%</div>
+      </div>
+      <div class="hud-group">
+        <div class="hud-label">CREDITS</div>
+        <div class="hud-value" id="credits-val">0 CR</div>
+      </div>
+      <div class="hud-group">
+        <div class="hud-label">STREAK</div>
+        <div class="hud-value" id="streak-val">1.0x</div>
+      </div>
+      <div class="hud-group">
+        <div class="hud-label">AVG WAIT</div>
+        <div class="hud-value" id="avg-wait-val">0s</div>
+      </div>
+      <div class="hud-group">
+        <div class="hud-label">UNSERVED</div>
+        <div class="hud-value" id="unserved-val">0 / 20</div>
+      </div>
+      <div class="hud-group">
+        <div class="hud-label">HIGH SCORE</div>
+        <div class="hud-value" id="highscore-val">0</div>
+      </div>
+      <div class="hud-group">
+        <div class="hud-label">SIM SPEED</div>
+        <div class="speed-group">
+          <button class="btn speed-btn active" data-speed="1">1X</button>
+          <button class="btn speed-btn" data-speed="5">5X</button>
+          <button class="btn speed-btn" data-speed="10">10X</button>
+        </div>
+      </div>
+      <button class="btn primary" id="shop-btn">🛒 UPGRADE SHOP</button>
+      <button class="btn" id="switch-mode-btn">💻 SWITCH TO CODE</button>
+      <button class="btn warning" id="dispatch-btn">📡 DISPATCH ALL</button>
+      <button class="btn danger" id="reset-btn">🔄 RESET SIM</button>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal hidden" id="shop-modal">
+    <div class="modal-content">
+      <h2>INFRASTRUCTURE SHOP</h2>
+      <div id="shop-items"></div>
+      <p style="margin:10px 0;">Credits: <span id="shop-credits">0</span></p>
+      <button class="btn" id="close-shop">CLOSE</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="code-modal">
+    <div class="modal-content" style="max-width:600px;">
+      <h2>LOGISTICS CODE</h2>
+      <p style="font-size:0.7rem;">Define init(elevators, floors) and update(dt, elevators, floors)</p>
+      <textarea id="code-editor">// Example
+function init(elevators, floors) {
+  elevators.forEach(e => {
+    e.on("idle", () => {
+      for (let f of floors) {
+        if (f.waitingPassengers().length > 0) {
+          e.goToFloor(f.level);
+          break;
+        }
+      }
+    });
+  });
+}
+function update(dt, elevators, floors) { }</textarea>
+      <div class="console" id="code-console">> Ready.</div>
+      <button class="btn primary" id="deploy-btn">DEPLOY</button>
+      <button class="btn danger" id="stop-code-btn">STOP SCRIPT</button>
+      <button class="btn" id="close-code">CLOSE</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="gameover-modal">
+    <div class="modal-content">
+      <h2 style="color:var(--danger);">NETWORK COLLAPSE</h2>
+      <p id="gameover-msg"></p>
+      <p>Final Score: <span id="final-score" style="color:var(--accent);font-size:1.5rem;">0</span></p>
+      <button class="btn primary" id="restart-btn">RESTART</button>
     </div>
   </div>
   <script>
