@@ -1,47 +1,43 @@
 # SUBNET LIFT – Vertical Order
 
-**SUBNET LIFT** is a high-stakes, cyberpunk-themed elevator management simulator. In a vertical mega-tower where social class determines your survival, you operate the lift systems that keep the gears of the city turning.
+**SUBNET LIFT** is a high-fidelity, standalone elevator logistics simulation set in a corporate dystopia cyberpunk future. As the Master of Vertical Order, you are responsible for maintaining the flow of a 30-floor vertical mega-tower where social class determines survival.
 
-## 🏙️ The Setting
-The tower is divided into distinct zones:
-- **0-5**: The Private Ground Exit / Executive Entry.
-- **6-19**: The Worker Hubs (Habitation Units).
-- **20-29**: The Penthouse Executive Suites.
+## 🏙️ The Lore: A Divided Tower
+The tower is the heart of the city, but it is deeply stratified:
+- **PENTHOUSE (Floors 25-29):** The domain of the Corporate Executives. High stakes, high impatient, high rewards.
+- **WORKER HUB (Floors 6-19):** The mid-tier residential and industrial units for the corporate middle class.
+- **SERVICE SLUMS (Floors 0-5):** The service layers and drone recharge stations for the lower class.
 
-## 🛂 Social Stratification
-Passengers are divided into three classes:
-- **EXECUTIVES (Magenta Diamond)**: High weight (2.0), extremely impatient (15s), high rewards + speed bonuses.
-- **WORKERS (Cyan Rectangle)**: Standard weight (1.0), moderate patience (30s).
-- **DRONES (Lime Green Drone)**: Low weight (0.5), high patience (60s), low rewards.
+## 🎮 Dual Control Interfaces
+Players can choose their operational protocol at initialization:
 
-## 🎮 Game Modes
-- **MANUAL PLAY**: Direct intervention using on-screen control panels and floor-click dispatching.
-- **CODING MODE**: A programmatic interface (inspired by Elevator Saga) where you write JavaScript to automate the tower's logistics.
+### MODE A: MANUAL_CONTROL
+- **Direct Dispatch**: Use the **CALL** buttons on the floor strip or the elevator HUD to manually assign floors.
+- **Strategic Intervention**: Prioritize high-value Executives during peak load times to maintain compliance.
+- **Tactical Overrides**: Command elevators to go to the nearest call or idle at strategic floor intervals.
 
-## 🛠️ Upgrade System
-Earn credits by delivering passengers and spend them in the **Point Shop**:
-- **Elevator Speed**: Reduce floor-to-floor travel time.
-- **Capacity**: Increase the total weight each car can handle.
-- **Acceleration**: Boost door opening and closing speeds.
-- **Fleet Expansion**: Unlock up to 4 elevators total.
-- **VIP Priority**: Increase Executive patience.
-- **Drone Replicator**: Increase credit yield from service drones.
+### MODE B: LOGISTICS_CODING
+- **Programmatic Optimization**: Inject JavaScript protocols into the tower's infrastructure.
+- **Custom Logic**: Write your own `init` and `update` functions to automate the fleet.
+- **Developer Terminal**: A built-in terminal console provides real-time logs and error reporting for your optimization scripts.
 
-## 📜 Coding API
-In **Coding Mode**, you have access to:
-- `elevators`: Array of `Elevator` objects.
-  - `goToFloor(n)`: Queue a floor.
-  - `stop()`: Clear queue and idle.
-  - `on("idle", callback)`: Triggered when queue is empty.
-  - `on("floor_reached", callback)`: Triggered when car arrives.
-- `floors`: Array of `Floor` objects.
-  - `on("button_pressed", callback)`: Triggered when a call is made.
-  - `waitingPassengers()`: Metadata about current lobby.
+## 🧬 Social Stratification System
+The simulation handles three distinct classes with unique behaviors:
 
-## 🚀 Getting Started
-1. Open `index.html` in any modern browser.
-2. Select your interface.
-3. Keep **System Load** low and **Corporate Compliance** high to avoid an **Order Breach**.
+1. **EXECUTIVES (#ff00c8)**
+   - **Patience**: 15s (Extremely Impatient).
+   - **Weight**: 2.0 units (Heavy).
+   - **Reward**: 20 CR + Speed Bonuses.
+   - **Zones**: Spawn at 0-5 or 25-29. Targets 0-5 or 20-29.
 
----
-*Created by Antigravity AI for the SOUMILCHANDRA Mega-Tower.*
+2. **WORKERS (#00f0ff)**
+   - **Patience**: 30s.
+   - **Weight**: 1.0 unit.
+   - **Reward**: 10 CR.
+   - **Zones**: Spawn at 6-19. Targets any floor.
+
+3. **DRONES (#39ff14)**
+   - **Patience**: 60s.
+   - **Weight**: 0.5 units.
+   - **Reward**: 5 CR.
+   - **Zones**: Spawn anywhere 0-24. Targets lower floors.
