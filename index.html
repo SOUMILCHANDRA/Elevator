@@ -569,8 +569,11 @@
 
                 <div id="coding-panel" style="display: none; flex-direction: column; flex-grow: 1; margin-top: 20px; overflow: hidden;">
                     <span class="label">OPTIMIZER_PROTOCOL</span>
-                    <textarea id="code-editor" spellcheck="false" style="flex-grow: 1; min-height: 300px;">// Protocol injected...</textarea>
+                    <textarea id="code-editor" spellcheck="false" style="flex-grow: 1; min-height: 200px;">// Protocol injected...</textarea>
                     <button id="btn-apply" class="btn" style="margin-top: 10px;">EXECUTE_PROTOCOL</button>
+                    <div id="console-log" style="height: 150px; background: #000; border: 1px solid #333; margin-top: 10px; padding: 10px; font-size: 10px; font-family: 'JetBrains Mono'; color: #0f0; overflow-y: auto;">
+                        > SYSTEM_READY...
+                    </div>
                 </div>
                 
                 <div id="manual-controls" style="margin-top: 20px;">
@@ -869,8 +872,9 @@
                 this.lastDeliveryTime = 0;
                 this.streakCount = 0;
                 this.highScore = localStorage.getItem('subnet_lift_highscore') || 0;
-                
-                this.upgrades = JSON.parse(localStorage.getItem('subnet_lift_upgrades')) || {
+                this.difficulty = 1;
+                this.spawnTimer = 0;
+                this.time = 0;
                     speed: 0,
                     capacity: 0,
                     acceleration: 0,
@@ -1069,25 +1073,30 @@
 
             update(dt) {
                 if (this.gameOver) return;
+                this.time += dt;
+                this.difficulty = 1 + (this.time / 300); // 1.0 -> 2.0 over 5 mins
                 this.pulse = (this.pulse + 0.05) % (Math.PI * 2);
-                if (this.mode === 'coding' && this.userUpdate) { try { this.userUpdate(dt, this.elevators, this.floors); } catch(e) {} }
+                
+                if (this.mode === 'coding' && this.userUpdate) { try { this.userUpdate(dt, this.elevators, this.floors); } catch(e) { this.logError(e.message); } }
+                
                 this.elevators.forEach(e => {
                     e.update(dt);
-                    if (e.state === 'opening') {
-                        const btn = document.getElementById(`floor-btn-${e.currentFloor}`);
-                        if (btn.classList.contains('active')) btn.classList.remove('active');
-                    }
+                    if (e.state === 'open' && e.timer === 1.0) { playSound(880, 'sine', 0.1, 0.05); } // Ding
                     if (this.mode === 'manual') {
                         const ctrl = document.getElementById(`elevator-ctrl-${e.id}`);
-                        ctrl.innerHTML = `
-                            <div class="label" style="color:#fff">ELEVATOR_${e.id}</div>
-                            <div style="font-size:10px">FLOOR: ${e.currentFloor}</div>
-                            <div style="font-size:10px">STATE: ${e.state.toUpperCase()}</div>
-                            <div style="font-size:10px">LOAD: ${Math.round(e.loadFactor()*100)}%</div>
-                            <button class="control-btn" onclick="world.setTarget(${e.id})">TARGET</button>
-                            <button class="control-btn" onclick="world.goNearest(${e.id})">NEAREST</button>
-                            <button class="control-btn" onclick="world.stopElevator(${e.id})">IDLE</button>
-                        `;
+                        if (ctrl) {
+                            ctrl.innerHTML = `
+                                <div class="label" style="color:#fff">ELEVATOR_${e.id}</div>
+                                <div style="font-size:10px">FLOOR: ${e.currentFloor}</div>
+                                <div style="font-size:10px">STATE: ${e.state.toUpperCase()}</div>
+                                <div style="font-size:10px">LOAD: ${Math.round(e.loadFactor()*100)}%</div>
+                                <div style="display:flex;gap:5px;margin-top:5px">
+                                    <button class="btn-small" onclick="world.setTarget(${e.id})">TARGET</button>
+                                    <button class="btn-small" onclick="world.goNearest(${e.id})">NEAREST</button>
+                                    <button class="btn-small" onclick="world.stopElevator(${e.id})">IDLE</button>
+                                </div>
+                            `;
+                        }
                     }
                 });
 
@@ -1098,13 +1107,12 @@
                         if (p.waitTimer > p.maxWait) {
                             p.state = 'done';
                             this.credits -= p.penalty;
-                            playSound(220, 'sawtooth', 0.5, 0.1);
+                            playSound(110, 'sawtooth', 0.5, 0.1); // Buzz
                         } else {
                             maxWait = Math.max(maxWait, p.waitTimer);
                             const elevator = this.elevators.find(e => {
                                 if (e.currentFloor !== p.startFloor || e.state !== 'open' || e.boardingTimer > 0) return false;
                                 if (e.currentWeight() + p.weight > e.capacity) return false;
-                                // Direction sensitive boarding
                                 if (e.direction === 0) return true;
                                 const pDir = p.targetFloor > p.startFloor ? 1 : -1;
                                 return pDir === e.direction;
@@ -1113,7 +1121,7 @@
                                 p.state = 'inside';
                                 p.elevator = elevator;
                                 elevator.passengers.push(p);
-                                elevator.boardingTimer = 0.5; // 0.5s real time boarding
+                                elevator.boardingTimer = 0.5;
                                 elevator.emit('floor_button_pressed', p.targetFloor);
                                 if (this.mode === 'manual') elevator.goToFloor(p.targetFloor);
                             }
@@ -1123,44 +1131,32 @@
                         p.state = 'done';
                         this.transported++;
                         this.totalWaitTime += p.waitTimer;
-
-                        // Streak Logic
                         const now = Date.now();
-                        if (now - this.lastDeliveryTime < 5000) {
-                            this.streakCount++;
-                        } else {
-                            this.streakCount = 0;
-                        }
+                        if (now - this.lastDeliveryTime < 5000) { this.streakCount++; } else { this.streakCount = 0; }
                         this.lastDeliveryTime = now;
                         const streakMultiplier = 1 + (this.streakCount * 0.1);
-
-                        // Base Reward & Time Bonus
                         let reward = p.reward;
-                        if (p.waitTimer < p.maxWait / 2) {
-                            reward *= 1.5; // 50% Bonus
-                        }
-
-                        // Wait Time Penalty
-                        if (p.waitTimer > p.maxWait / 2) {
-                            const penalty = Math.floor(p.waitTimer - p.maxWait / 2);
-                            reward = Math.max(0, reward - penalty);
-                        }
-
+                        if (p.waitTimer < p.maxWait / 2) { reward *= 1.5; }
+                        if (p.waitTimer > p.maxWait / 2) { reward = Math.max(0, reward - Math.floor(p.waitTimer - p.maxWait / 2)); }
                         this.credits += Math.floor(reward * streakMultiplier);
-                        
-                        // Update High Score
                         if (this.credits > this.highScore) {
                             this.highScore = this.credits;
                             localStorage.setItem('subnet_lift_highscore', this.highScore);
-                            document.getElementById('high-score-value').innerText = this.highScore;
                         }
-
                         p.elevator.passengers = p.elevator.passengers.filter(pass => pass !== p);
                     }
                 });
 
                 this.people = this.people.filter(p => p.state !== 'done');
-                if (Math.random() < 0.02 * dt * 60) this.spawnPerson();
+                this.spawnTimer += dt;
+                const spawnInterval = (3.0 / this.difficulty); // real seconds
+                if (this.spawnTimer >= spawnInterval) {
+                    this.spawnTimer = 0;
+                    this.spawnPerson();
+                }
+
+                if (this.compliance < 20 && Math.random() < 0.05) playSound(150, 'triangle', 0.2, 0.05); // low compliance warning
+            }
 
                 const waitingCount = this.people.filter(p => p.state === 'waiting').length;
                 document.getElementById('load-value').innerText = Math.round((waitingCount/CONFIG.LOSS_THRESHOLD)*100) + "%";
@@ -1243,14 +1239,41 @@
             applyScript() {
                 const code = document.getElementById('code-editor').value;
                 localStorage.setItem('subnet_lift_code', code);
+                this.log("EXECUTING_PROTOCOL...");
                 try {
+                    // Reset listeners to prevent stacking
                     this.elevators.forEach(e => e.listeners = {});
                     this.floors.forEach(f => f.listeners = {});
-                    const script = eval(`(${code})`);
-                    if (script.init) script.init(this.elevators, this.floors);
-                    this.userUpdate = script.update;
-                    console.log("LOGISTICS OVERRIDE ACTIVE.");
-                } catch (e) { alert("ERROR: " + e.message); }
+                    
+                    const sandboxConsole = { log: (msg) => this.log(msg) };
+                    const factory = new Function('console', 'elevators', 'floors', `
+                        "use strict";
+                        try {
+                            const protocol = ${code};
+                            return protocol;
+                        } catch(e) { throw e; }
+                    `);
+                    const protocol = factory(sandboxConsole, this.elevators, this.floors);
+                    if (protocol.init) protocol.init(this.elevators, this.floors);
+                    this.userUpdate = protocol.update;
+                    this.log("PROTOCOL_STABLE");
+                } catch (e) {
+                    this.logError(e.message);
+                }
+            }
+
+            log(msg) {
+                const el = document.getElementById('console-log');
+                if (!el) return;
+                el.innerHTML += `<div>> ${msg}</div>`;
+                el.scrollTop = el.scrollHeight;
+            }
+
+            logError(msg) {
+                const el = document.getElementById('console-log');
+                if (!el) return;
+                el.innerHTML += `<div style="color:var(--accent)">> ERROR: ${msg}</div>`;
+                el.scrollTop = el.scrollHeight;
             }
 
             draw() {
