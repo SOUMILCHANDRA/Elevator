@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE ASCENT | Corporate Logistics Optimizer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <title>SUBNET LIFT | Vertical Order</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #050505;
-            --primary: #00f3ff;
-            --secondary: #ff0055;
-            --accent: #bc13fe;
+            --bg-color: #0d0d0d;
+            --primary: #00f0ff;
+            --secondary: #ff00c8;
+            --accent: #39ff14;
             --text-color: #e0e0e0;
             --glass: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
@@ -37,12 +37,12 @@
             flex: 1;
             display: flex;
             overflow: hidden;
-            background: linear-gradient(0deg, #0a0a0a 0%, #050505 100%);
+            background: #0d0d0d;
         }
 
         #render-canvas {
             flex: 1;
-            background: #000;
+            background: #0d0d0d;
         }
 
         #ui-overlay {
@@ -58,11 +58,11 @@
         .hud-panel {
             position: absolute;
             padding: 20px;
-            background: var(--glass);
+            background: rgba(13, 13, 13, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
             pointer-events: auto;
-            pointer-events: auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
         #stats-panel {
@@ -86,7 +86,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             border: 1px solid var(--primary);
             position: relative;
         }
@@ -97,8 +97,8 @@
             color: var(--primary);
             border: none;
             padding: 15px;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
             resize: none;
             outline: none;
         }
@@ -112,12 +112,14 @@
             text-transform: uppercase;
             font-weight: bold;
             transition: all 0.2s;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
         }
 
         .btn:hover {
             background: var(--primary);
             color: #000;
-            box-shadow: 0 0 15px var(--primary);
+            box-shadow: 0 0 20px var(--primary);
         }
 
         .btn-secondary {
@@ -128,7 +130,7 @@
         .btn-secondary:hover {
             background: var(--secondary);
             color: #000;
-            box-shadow: 0 0 15px var(--secondary);
+            box-shadow: 0 0 20px var(--secondary);
         }
 
         /* Scanline effect */
@@ -139,10 +141,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 4px, 3px 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 2px 100%;
             pointer-events: none;
             z-index: 100;
+            opacity: 0.5;
         }
 
         .label {
@@ -151,12 +154,14 @@
             opacity: 0.7;
             margin-bottom: 5px;
             display: block;
+            letter-spacing: 2px;
         }
 
         .value {
             font-size: 24px;
             font-weight: bold;
             text-shadow: 0 0 10px var(--primary);
+            font-family: 'JetBrains Mono', monospace;
         }
 
         #mode-toggle {
@@ -178,8 +183,8 @@
         }
 
         .floor-btn {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -187,13 +192,16 @@
             border: 1px solid var(--glass-border);
             font-size: 12px;
             cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
         }
 
         .floor-btn.active {
             border-color: var(--secondary);
             color: var(--secondary);
-            box-shadow: inset 0 0 5px var(--secondary);
+            box-shadow: inset 0 0 10px var(--secondary), 0 0 10px var(--secondary);
         }
+
         .blink {
             animation: blink-anim 0.5s infinite;
         }
@@ -209,7 +217,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #000;
+            background: #0d0d0d;
             z-index: 2000;
             display: flex;
             flex-direction: column;
@@ -220,21 +228,44 @@
         }
 
         .glitch-text {
-            font-size: 64px;
+            font-size: 72px;
             color: var(--primary);
-            text-shadow: 2px 2px var(--secondary), -2px -2px var(--accent);
+            text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent);
             margin-bottom: 20px;
+            letter-spacing: 5px;
+            font-weight: 900;
+            animation: glitch-anim 2s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim {
+            0% { text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent); }
+            25% { text-shadow: -3px 3px var(--secondary), 3px -3px var(--accent); }
+            50% { text-shadow: 3px -3px var(--secondary), -3px 3px var(--accent); }
+            75% { text-shadow: -3px -3px var(--secondary), 3px 3px var(--accent); }
+            100% { text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent); }
+        }
+
+        .node-pulse {
+            animation: pulse-anim 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-anim {
+            0% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.5); }
+            100% { opacity: 0.2; transform: scale(1); }
         }
     </style>
 </head>
 <body>
     <div id="start-screen">
-        <h1 class="glitch-text">THE ASCENT</h1>
-        <p style="margin-bottom: 40px; max-width: 600px; line-height: 1.6; color: #888;">
-            Welcome, Logistics Optimizer. Your objective is to manage the vertical transport units of the Mega-Corp structure. 
-            Ensure Corporate Compliance stays above 0%. Efficiency is mandatory.
+        <h1 class="glitch-text">SUBNET LIFT</h1>
+        <h2 style="font-size: 18px; color: var(--accent); margin-bottom: 30px; letter-spacing: 4px;">VERTICAL ORDER</h2>
+        <p style="margin-bottom: 40px; max-width: 600px; line-height: 1.8; color: #888; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+            <span style="color: var(--primary)">> SYSTEM_ID: MEGA-TOWER_01</span><br>
+            The tower is divided. DRONES in the slums, WORKERS in the hub, EXECUTIVES in the penthouse.
+            Maintain the vertical flow. Corporate compliance is your only lifeline.
         </p>
-        <button class="btn" onclick="startGame()">INITIALIZE SYSTEM</button>
+        <button class="btn" onclick="startGame()">INITIALIZE_UPLINK</button>
     </div>
 
     <div id="game-container">
@@ -369,30 +400,19 @@
                 this.capacity = 6;
                 this.queue = [];
                 this.direction = 0; 
-                this.maxSpeed = 8;
-                this.accel = 0.2;
+                this.maxSpeed = 10;
+                this.accel = 0.3;
                 this.currentSpeed = 0;
             }
 
             goToFloor(floorIndex) {
                 if (!this.queue.includes(floorIndex)) {
                     this.queue.push(floorIndex);
-                    this.queue.sort((a, b) => a - b); // Basic sort, user can override logic
                 }
-            }
-
-            getPressedFloors() {
-                return this.passengers.map(p => p.targetFloor);
-            }
-
-            loadFactor() {
-                return this.passengers.length / this.capacity;
             }
 
             update(dt) {
                 if (this.state === 'idle' && this.queue.length > 0) {
-                    // Simple heuristic: pick closest in queue
-                    this.queue.sort((a, b) => Math.abs(a - this.currentFloor) - Math.abs(b - this.currentFloor));
                     this.targetFloor = this.queue.shift();
                     this.state = 'moving';
                     this.direction = this.targetFloor > this.currentFloor ? 1 : -1;
@@ -444,73 +464,54 @@
             draw(ctx, worldY) {
                 const screenY = ctx.canvas.height - (this.y + CONFIG.ELEVATOR_HEIGHT) + worldY;
                 
-                // Shaft Glow
-                const grad = ctx.createLinearGradient(this.x, 0, this.x + CONFIG.ELEVATOR_WIDTH, 0);
-                grad.addColorStop(0, 'rgba(0, 243, 255, 0.05)');
-                grad.addColorStop(0.5, 'rgba(0, 243, 255, 0)');
-                grad.addColorStop(1, 'rgba(0, 243, 255, 0.05)');
-                ctx.fillStyle = grad;
+                // Glowing Vertical Beam Shaft
+                const beamGrad = ctx.createLinearGradient(this.x, 0, this.x + CONFIG.ELEVATOR_WIDTH, 0);
+                beamGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
+                beamGrad.addColorStop(0.5, 'rgba(0, 240, 255, 0.15)');
+                beamGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+                ctx.fillStyle = beamGrad;
                 ctx.fillRect(this.x, 0, CONFIG.ELEVATOR_WIDTH, ctx.canvas.height);
 
-                // Shaft Cables
-                ctx.strokeStyle = '#1a1a1a';
-                ctx.lineWidth = 2;
+                // Beam Edges
+                ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(this.x + 10, 0); ctx.lineTo(this.x + 10, ctx.canvas.height);
-                ctx.moveTo(this.x + CONFIG.ELEVATOR_WIDTH - 10, 0); ctx.lineTo(this.x + CONFIG.ELEVATOR_WIDTH - 10, ctx.canvas.height);
+                ctx.moveTo(this.x, 0); ctx.lineTo(this.x, ctx.canvas.height);
+                ctx.moveTo(this.x + CONFIG.ELEVATOR_WIDTH, 0); ctx.lineTo(this.x + CONFIG.ELEVATOR_WIDTH, ctx.canvas.height);
                 ctx.stroke();
 
                 // Car
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.state === 'moving' ? '#00f3ff' : 'transparent';
-                ctx.fillStyle = '#0a0a0a';
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.state === 'moving' ? '#00f0ff' : 'transparent';
+                ctx.fillStyle = '#1a1a1a';
                 ctx.fillRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
                 
-                ctx.strokeStyle = this.state === 'moving' ? '#00f3ff' : '#333';
+                ctx.strokeStyle = this.state === 'moving' ? '#00f0ff' : '#333';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
                 ctx.shadowBlur = 0;
 
                 // Interior Detail
-                ctx.fillStyle = 'rgba(0, 243, 255, 0.1)';
-                ctx.fillRect(this.x + 5, screenY + 5, CONFIG.ELEVATOR_WIDTH - 10, CONFIG.ELEVATOR_HEIGHT - 10);
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.05)';
+                ctx.fillRect(this.x + 4, screenY + 4, CONFIG.ELEVATOR_WIDTH - 8, CONFIG.ELEVATOR_HEIGHT - 8);
 
                 // Doors
                 const doorW = (CONFIG.ELEVATOR_WIDTH / 2) * (1 - this.doorOpen);
-                const doorGrad = ctx.createLinearGradient(this.x, 0, this.x + doorW, 0);
-                doorGrad.addColorStop(0, '#111');
-                doorGrad.addColorStop(1, '#222');
-                
-                ctx.fillStyle = doorGrad;
+                ctx.fillStyle = '#0a0a0a';
                 ctx.fillRect(this.x, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
                 ctx.fillRect(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
                 
-                // Door Edges (Neon)
-                ctx.strokeStyle = 'rgba(0, 243, 255, 0.5)';
+                // Door Outlines
+                ctx.strokeStyle = '#00f0ff';
                 ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(this.x + doorW, screenY); ctx.lineTo(this.x + doorW, screenY + CONFIG.ELEVATOR_HEIGHT);
-                ctx.moveTo(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY); ctx.lineTo(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY + CONFIG.ELEVATOR_HEIGHT);
-                ctx.stroke();
+                ctx.strokeRect(this.x, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
+                ctx.strokeRect(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
 
-                // Floor indicator HUD
-                ctx.fillStyle = '#00f3ff';
-                ctx.font = 'bold 10px Orbitron';
+                // HUD Text
+                ctx.fillStyle = '#00f0ff';
+                ctx.font = 'bold 10px JetBrains Mono';
                 ctx.textAlign = 'center';
-                ctx.fillText(`L${Math.round(this.y / CONFIG.FLOOR_HEIGHT)}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + 15);
-                
-                // Direction Arrow
-                if (this.direction !== 0 && this.state === 'moving') {
-                    ctx.beginPath();
-                    const arrowY = screenY + 25;
-                    const arrowX = this.x + CONFIG.ELEVATOR_WIDTH/2;
-                    if (this.direction > 0) {
-                        ctx.moveTo(arrowX - 5, arrowY + 5); ctx.lineTo(arrowX, arrowY); ctx.lineTo(arrowX + 5, arrowY + 5);
-                    } else {
-                        ctx.moveTo(arrowX - 5, arrowY - 5); ctx.lineTo(arrowX, arrowY); ctx.lineTo(arrowX + 5, arrowY - 5);
-                    }
-                    ctx.stroke();
-                }
+                ctx.fillText(`LVL_${Math.round(this.y / CONFIG.FLOOR_HEIGHT)}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + 15);
             }
         }
 
@@ -523,7 +524,11 @@
                 this.waitTimer = 0;
                 this.elevator = null;
                 this.id = Math.random().toString(36).substr(2, 9);
-                this.color = `hsl(${180 + Math.random() * 60}, 100%, 50%)`;
+                
+                // Class-based coloring
+                if (startFloor < 4) this.color = '#39ff14'; // Drone
+                else if (startFloor < 8) this.color = '#00f0ff'; // Worker
+                else this.color = '#ff00c8'; // Executive
             }
 
             update() {
@@ -534,34 +539,24 @@
 
             draw(ctx, worldY) {
                 if (this.state === 'inside') return;
+                const y = ctx.canvas.height - (this.startFloor * CONFIG.FLOOR_HEIGHT + 15) + worldY;
                 
-                const y = ctx.canvas.height - (this.startFloor * CONFIG.FLOOR_HEIGHT + 20) + worldY;
-                
-                // Shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.beginPath();
-                ctx.ellipse(this.x, y + 10, 8, 3, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Body
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = this.color;
                 ctx.fillStyle = this.color;
-                if (this.waitTimer > 15) {
-                    ctx.shadowColor = '#ff0055';
-                    ctx.fillStyle = '#ff0055';
-                }
-                
                 ctx.beginPath();
-                ctx.arc(this.x, y, 6, 0, Math.PI * 2);
+                ctx.arc(this.x, y, 5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
-                
-                // Target Display
-                ctx.fillStyle = '#fff';
-                ctx.font = '8px Orbitron';
-                ctx.textAlign = 'center';
-                ctx.fillText(this.targetFloor, this.x, y - 10);
+
+                // Wait Warning
+                if (this.waitTimer > 15) {
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, y, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
             }
         }
 
@@ -577,14 +572,18 @@
                 this.transported = 0;
                 this.worldY = 0;
                 this.mode = 'manual';
+                this.pulse = 0;
 
                 for (let i = 0; i < CONFIG.NUM_ELEVATORS; i++) {
-                    this.elevators.push(new Elevator(i, 150 + i * 100));
+                    this.elevators.push(new Elevator(i, 160 + i * 110));
                 }
 
                 for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
                     const floorObj = new EventEmitter();
                     floorObj.level = i;
+                    if (i < 4) floorObj.tier = 'DRONE_ZONE';
+                    else if (i < 8) floorObj.tier = 'WORKER_HUB';
+                    else floorObj.tier = 'EXEC_SUITE';
                     this.floors.push(floorObj);
                 }
 
@@ -630,14 +629,12 @@
                     if (nearest) nearest.goToFloor(floorIndex);
                 }
                 
-                // Visual feedback
                 const btn = document.getElementById(`floor-btn-${floorIndex}`);
                 if (!btn.classList.contains('active')) {
                     btn.classList.add('active');
                     playSound(440, 'square', 0.05, 0.02);
                 }
                 
-                // Emit event for script
                 this.floors[floorIndex].emit('button_pressed');
             }
 
@@ -654,10 +651,10 @@
 
             update() {
                 if (this.gameOver) return;
+                this.pulse = (this.pulse + 0.05) % (Math.PI * 2);
 
                 this.elevators.forEach(e => {
                     e.update(1/60);
-                    // Turn off floor button when elevator arrives
                     if (e.state === 'opening') {
                         const btn = document.getElementById(`floor-btn-${e.currentFloor}`);
                         if (btn.classList.contains('active')) {
@@ -669,7 +666,6 @@
 
                 this.people.forEach(p => {
                     p.update();
-                    
                     if (p.state === 'waiting') {
                         const elevator = this.elevators.find(e => 
                             e.currentFloor === p.startFloor && 
@@ -683,7 +679,6 @@
                             if (this.mode === 'manual') elevator.goToFloor(p.targetFloor);
                         }
                     }
-
                     if (p.state === 'inside') {
                         if (p.elevator.currentFloor === p.targetFloor && p.elevator.state === 'open') {
                             p.state = 'done';
@@ -696,11 +691,9 @@
 
                 this.people = this.people.filter(p => p.state !== 'done');
 
-                // Difficulty scaling
                 const spawnChance = 0.01 + (this.transported / 500);
                 if (Math.random() < spawnChance) this.spawnPerson();
 
-                // Update HUD
                 document.getElementById('waiting-value').innerText = this.people.filter(p => p.state === 'waiting').length;
                 document.getElementById('transported-value').innerText = this.transported;
                 
@@ -709,57 +702,26 @@
                 document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
                 
                 if (this.compliance < 30) {
-                    document.getElementById('compliance-value').style.color = '#ff0055';
+                    document.getElementById('compliance-value').style.color = '#ff00c8';
                     document.getElementById('compliance-value').classList.add('blink');
                 } else {
-                    document.getElementById('compliance-value').style.color = '#00f3ff';
+                    document.getElementById('compliance-value').style.color = '#00f0ff';
                     document.getElementById('compliance-value').classList.remove('blink');
                 }
 
-                if (this.compliance <= 0) {
-                    this.endGame();
-                }
-            }
-
-            endGame() {
-                this.gameOver = true;
-                const overlay = document.createElement('div');
-                overlay.style.position = 'absolute';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.background = 'rgba(255, 0, 85, 0.3)';
-                overlay.style.backdropFilter = 'blur(20px)';
-                overlay.style.display = 'flex';
-                overlay.style.flexDirection = 'column';
-                overlay.style.alignItems = 'center';
-                overlay.style.justifyContent = 'center';
-                overlay.style.zIndex = '1000';
-                overlay.style.color = '#fff';
-                overlay.innerHTML = `
-                    <h1 style="font-size: 48px; margin-bottom: 20px; text-shadow: 0 0 20px #ff0055;">CORPORATE TERMINATION</h1>
-                    <p style="font-size: 18px; margin-bottom: 40px;">Productivity threshold breached. Your services are no longer required.</p>
-                    <div style="font-size: 24px; margin-bottom: 40px;">UNITS TRANSPORTED: ${this.transported}</div>
-                    <button class="btn" onclick="location.reload()">REBOOT SYSTEM</button>
-                `;
-                document.body.appendChild(overlay);
-                playSound(110, 'sawtooth', 1.5, 0.2);
+                if (this.compliance <= 0) this.endGame();
             }
 
             draw() {
-                // Background Gradient
-                const bgGrad = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-                bgGrad.addColorStop(0, '#050505');
-                bgGrad.addColorStop(1, '#0a0a0f');
-                this.ctx.fillStyle = bgGrad;
+                this.ctx.fillStyle = '#0d0d0d';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-                // Draw floors
+                // Draw floors with Pulsing Synthwave Nodes
                 for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
                     const y = this.canvas.height - (i * CONFIG.FLOOR_HEIGHT) + this.worldY;
+                    const floor = this.floors[i];
                     
-                    // Floor Line
+                    // Grid Line
                     this.ctx.strokeStyle = 'rgba(255,255,255,0.05)';
                     this.ctx.lineWidth = 1;
                     this.ctx.beginPath();
@@ -767,11 +729,21 @@
                     this.ctx.lineTo(this.canvas.width, y);
                     this.ctx.stroke();
 
-                    // Floor Number
-                    this.ctx.fillStyle = 'rgba(0, 243, 255, 0.2)';
-                    this.ctx.font = 'bold 40px Orbitron';
+                    // Pulsing Node
+                    const pulseScale = 1 + Math.sin(this.pulse) * 0.3;
+                    const nodeColor = floor.tier === 'DRONE_ZONE' ? '#39ff14' : (floor.tier === 'WORKER_HUB' ? '#00f0ff' : '#ff00c8');
+                    this.ctx.fillStyle = nodeColor;
+                    this.ctx.globalAlpha = 0.2 + Math.sin(this.pulse) * 0.1;
+                    this.ctx.beginPath();
+                    this.ctx.arc(100, y, 4 * pulseScale, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.globalAlpha = 1.0;
+
+                    // Tier Label
+                    this.ctx.fillStyle = nodeColor;
+                    this.ctx.font = 'bold 10px JetBrains Mono';
                     this.ctx.textAlign = 'left';
-                    this.ctx.fillText(i.toString().padStart(2, '0'), 20, y - 10);
+                    this.ctx.fillText(`${floor.tier}_${i}`, 115, y + 4);
                 }
 
                 this.elevators.forEach(e => e.draw(this.ctx, this.worldY));
@@ -780,26 +752,36 @@
                 // Vignette
                 const vig = this.ctx.createRadialGradient(this.canvas.width/2, this.canvas.height/2, 0, this.canvas.width/2, this.canvas.height/2, this.canvas.width);
                 vig.addColorStop(0, 'rgba(0,0,0,0)');
-                vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+                vig.addColorStop(1, 'rgba(0,0,0,0.6)');
                 this.ctx.fillStyle = vig;
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            endGame() {
+                this.gameOver = true;
+                const overlay = document.createElement('div');
+                overlay.style = `position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,0,200,0.2);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;color:#fff;font-family:'Orbitron'`;
+                overlay.innerHTML = `
+                    <h1 style="font-size:48px;margin-bottom:20px;color:#ff00c8;text-shadow:0 0 20px #ff00c8">ORDER_BREACHED</h1>
+                    <p style="font-size:18px;margin-bottom:40px;color:#00f0ff">The vertical order has collapsed. You have been recycled.</p>
+                    <div style="font-size:24px;margin-bottom:40px">UNITS_PROCESSED: ${this.transported}</div>
+                    <button class="btn btn-secondary" onclick="location.reload()">RE-INITIALIZE</button>
+                `;
+                document.body.appendChild(overlay);
+                playSound(110, 'sawtooth', 1.5, 0.2);
             }
 
             applyScript() {
                 const code = document.getElementById('code-editor').value;
                 try {
-                    // Reset listeners to avoid duplicates
                     this.elevators.forEach(e => e.listeners = {});
                     this.floors.forEach(f => f.listeners = {});
-                    
                     const script = eval(`(${code})`);
-                    if (script.init) {
-                        script.init(this.elevators, this.floors);
-                    }
+                    if (script.init) script.init(this.elevators, this.floors);
                     this.userUpdate = script.update;
-                    console.log("System override successful. Logistics optimized.");
+                    console.log("LOGISTICS OVERRIDE ACTIVE.");
                 } catch (e) {
-                    alert("OVERRIDE FAILED: " + e.message);
+                    alert("OVERRIDE_ERROR: " + e.message);
                 }
             }
         }
