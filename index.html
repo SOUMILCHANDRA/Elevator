@@ -457,6 +457,53 @@
             #main-layout, #top-bar { display: none; }
         }
 
+        .warning-pulse {
+            animation: warning-anim 0.5s infinite alternate;
+        }
+        @keyframes warning-anim {
+            from { color: var(--primary); }
+            to { color: var(--accent); text-shadow: 0 0 10px var(--accent); }
+        }
+
+        .overlay-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 13, 13, 0.98);
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            text-align: center;
+        }
+
+        .mode-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 30px;
+            width: 300px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-card:hover { border-color: var(--primary); background: rgba(0, 240, 255, 0.1); transform: translateY(-5px); }
+        .mode-card h3 { margin-bottom: 15px; color: var(--primary); }
+        .mode-card p { font-size: 11px; color: #888; font-family: 'JetBrains Mono'; line-height: 1.6; }
+
+        #tutorial-overlay {
+            display: none;
+            max-width: 800px;
+            text-align: left;
+            background: #000;
+            border: 1px solid var(--primary);
+            padding: 40px;
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
+        }
+        #tutorial-overlay h2 { color: var(--primary); margin-bottom: 20px; }
+        #tutorial-overlay ul { list-style: none; padding: 0; }
+        #tutorial-overlay li { margin-bottom: 10px; font-size: 13px; color: #ccc; }
+        #tutorial-overlay li strong { color: var(--accent); }
+
         #shop-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -519,7 +566,7 @@
     <div id="top-bar">
         <h1 class="glitch-text" style="font-size: 24px; margin: 0; letter-spacing: 10px;">SUBNET LIFT</h1>
         <div id="global-stats" style="display: flex; gap: 30px; font-size: 12px; color: var(--primary);">
-            <div>STATUS: <span style="color: #39ff14;">OPTIMAL</span></div>
+            <div id="unserved-display">UNSERVED: <span style="color: var(--accent);">0</span> / 20</div>
             <div id="clock-display">TIME: 00:00</div>
         </div>
     </div>
@@ -601,6 +648,7 @@
     </div>
 
     <script>
+        /* --- CORE CONFIGURATION & CONSTANTS --- */
         const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(freq, type = 'sine', duration = 0.1, volume = 0.1) {
             const osc = AudioCtx.createOscillator();
@@ -631,6 +679,7 @@
             DRONE_POINT_BUFF: 0
         };
 
+        /* --- EVENT SYSTEM --- */
         class EventEmitter {
             constructor() { this.listeners = {}; }
             on(event, callback) {
@@ -642,6 +691,7 @@
             }
         }
 
+        /* --- ELEVATOR ENGINE --- */
         class Elevator extends EventEmitter {
             constructor(id, x) {
                 super();
@@ -762,6 +812,7 @@
             }
         }
 
+        /* --- PASSENGER ENTITIES --- */
         class Person {
             constructor(type, startFloor, targetFloor) {
                 this.type = type; // 'EXEC', 'WORKER', 'DRONE'
@@ -854,6 +905,7 @@
             }
         }
 
+        /* --- WORLD SIMULATION ENGINE --- */
         class World extends EventEmitter {
             constructor(canvas) {
                 super();
@@ -872,9 +924,12 @@
                 this.lastDeliveryTime = 0;
                 this.streakCount = 0;
                 this.highScore = localStorage.getItem('subnet_lift_highscore') || 0;
-                this.difficulty = 1;
+                this.unservedCount = 0;
+                this.difficulty = 1.0;
                 this.spawnTimer = 0;
                 this.time = 0;
+                
+                this.upgrades = JSON.parse(localStorage.getItem('subnet_lift_upgrades')) || {
                     speed: 0,
                     capacity: 0,
                     acceleration: 0,
@@ -1071,17 +1126,18 @@
                 idleElevators.forEach((e, i) => { if (waitingFloors[i]) e.goToFloor(waitingFloors[i].level); });
             }
 
+            /* --- SIMULATION ENGINE --- */
             update(dt) {
-                if (this.gameOver) return;
+                if (this.gameOver || this.paused) return;
                 this.time += dt;
-                this.difficulty = 1 + (this.time / 300); // 1.0 -> 2.0 over 5 mins
+                this.difficulty = Math.pow(1.2, this.time / 60); // x1.2 per minute
                 this.pulse = (this.pulse + 0.05) % (Math.PI * 2);
                 
                 if (this.mode === 'coding' && this.userUpdate) { try { this.userUpdate(dt, this.elevators, this.floors); } catch(e) { this.logError(e.message); } }
                 
                 this.elevators.forEach(e => {
                     e.update(dt);
-                    if (e.state === 'open' && e.timer === 1.0) { playSound(880, 'sine', 0.1, 0.05); } // Ding
+                    if (e.state === 'open' && e.timer === 1.0) { playSound(880, 'sine', 0.1, 0.05); } 
                     if (this.mode === 'manual') {
                         const ctrl = document.getElementById(`elevator-ctrl-${e.id}`);
                         if (ctrl) {
@@ -1100,16 +1156,15 @@
                     }
                 });
 
-                let maxWait = 0;
                 this.people.forEach(p => {
                     p.update(dt);
                     if (p.state === 'waiting') {
                         if (p.waitTimer > p.maxWait) {
                             p.state = 'done';
                             this.credits -= p.penalty;
-                            playSound(110, 'sawtooth', 0.5, 0.1); // Buzz
+                            this.unservedCount++;
+                            playSound(110, 'sawtooth', 0.5, 0.1); 
                         } else {
-                            maxWait = Math.max(maxWait, p.waitTimer);
                             const elevator = this.elevators.find(e => {
                                 if (e.currentFloor !== p.startFloor || e.state !== 'open' || e.boardingTimer > 0) return false;
                                 if (e.currentWeight() + p.weight > e.capacity) return false;
@@ -1149,13 +1204,19 @@
 
                 this.people = this.people.filter(p => p.state !== 'done');
                 this.spawnTimer += dt;
-                const spawnInterval = (3.0 / this.difficulty); // real seconds
+                const spawnInterval = (3.0 / this.difficulty); 
                 if (this.spawnTimer >= spawnInterval) {
                     this.spawnTimer = 0;
                     this.spawnPerson();
                 }
 
-                if (this.compliance < 20 && Math.random() < 0.05) playSound(150, 'triangle', 0.2, 0.05); // low compliance warning
+                // Loss conditions & Warnings
+                const waitingCount = this.people.filter(p => p.state !== 'inside').length;
+                const loadEl = document.getElementById('load-value');
+                loadEl.classList.toggle('warning-pulse', waitingCount > 25);
+                
+                if (waitingCount >= 40 || this.unservedCount >= 20) this.endGame();
+                if (this.compliance < 20 && Math.random() < 0.05) playSound(150, 'triangle', 0.2, 0.05); 
             }
 
                 const waitingCount = this.people.filter(p => p.state === 'waiting').length;
@@ -1236,6 +1297,7 @@
                 this.floors[start].emit(target > start ? 'up_button_pressed' : 'down_button_pressed');
             }
 
+            /* --- LOGISTICS TERMINAL (CODE MODE) --- */
             applyScript() {
                 const code = document.getElementById('code-editor').value;
                 localStorage.setItem('subnet_lift_code', code);
@@ -1276,6 +1338,7 @@
                 el.scrollTop = el.scrollHeight;
             }
 
+            /* --- UI RENDERING ENGINE --- */
             draw() {
                 const ctx = this.ctx;
                 ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -1347,35 +1410,59 @@
                 streakEl.innerText = streakDisplay.toFixed(1) + "x";
                 streakEl.style.textShadow = this.streakCount > 0 ? `0 0 10px var(--secondary)` : 'none';
                 
-                const waitingCount = this.people.filter(p => p.state === 'waiting').length;
-                document.getElementById('load-value').innerText = Math.round((waitingCount/CONFIG.LOSS_THRESHOLD)*100) + "%";
+                const waitingCount = this.people.filter(p => p.state !== 'inside').length;
+                document.getElementById('load-value').innerText = waitingCount;
                 document.getElementById('credits-value').innerText = this.credits + " CR";
                 document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
+                document.getElementById('unserved-display').innerHTML = `UNSERVED: <span style="color:var(--accent)">${this.unservedCount}</span> / 20`;
             }
 
             endGame() {
                 this.gameOver = true;
                 const overlay = document.createElement('div');
-                overlay.style = `position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,0,200,0.2);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;color:#fff;font-family:'Orbitron'`;
+                overlay.className = 'overlay-screen';
                 overlay.innerHTML = `
-                    <h1 style="font-size:48px;margin-bottom:20px;color:#ff00c8;text-shadow:0 0 20px #ff00c8">ORDER_BREACHED</h1>
+                    <h1 class="glitch-text" style="font-size:48px;margin-bottom:20px;color:#ff00c8;text-shadow:0 0 20px #ff00c8">ORDER_BREACHED</h1>
                     <p style="font-size:18px;margin-bottom:40px;color:#00f0ff">The vertical order has collapsed. You have been recycled.</p>
                     <div style="font-size:24px;margin-bottom:40px">UNITS_PROCESSED: ${this.transported}</div>
-                    <button class="btn btn-secondary" onclick="location.reload()">RE-INITIALIZE</button>
+                    <div style="font-size:18px;margin-bottom:40px">FINAL_CREDITS: ${this.credits}</div>
+                    <div style="display:flex;gap:20px">
+                        <button class="btn btn-secondary" onclick="location.reload()">RE-INITIALIZE</button>
+                    </div>
                 `;
                 document.body.appendChild(overlay);
                 playSound(110, 'sawtooth', 1.5, 0.2);
             }
         }
 
+        /* --- GLOBAL INITIALIZATION --- */
+        /* --- BOOT SEQUENCE & GLOBAL INIT --- */
         let world;
         window.onload = () => {
             const canvas = document.getElementById('render-canvas');
             world = new World(canvas);
-            const savedMode = localStorage.getItem('subnet_lift_mode') || 'manual';
-            world.mode = savedMode;
-            world.updateModeUI();
+        };
 
+        function showModeSelection() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('mode-selection').style.display = 'flex';
+            if (AudioCtx.state === 'suspended') AudioCtx.resume();
+        }
+
+        function selectMode(mode) {
+            localStorage.setItem('subnet_lift_mode', mode);
+            document.getElementById('mode-selection').style.display = 'none';
+            document.getElementById('tutorial-overlay').style.display = 'flex';
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorial-overlay').style.display = 'none';
+            initGame();
+        }
+
+        function initGame() {
+            world.mode = localStorage.getItem('subnet_lift_mode') || 'manual';
+            world.updateModeUI();
             function loop() {
                 const dt = (1/60) * CONFIG.SIM_SPEED;
                 world.update(dt);
@@ -1383,7 +1470,7 @@
                 requestAnimationFrame(loop);
             }
             loop();
-        };
+        }
     </script>
 </body>
 </html>
