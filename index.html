@@ -120,7 +120,7 @@
 
     /* floor panel (left) */
     #floor-panel {
-      width: 280px;
+      width: 220px; /* More compact */
       background: var(--panel);
       border-right: 1px solid var(--border);
       overflow-y: auto;
@@ -131,8 +131,8 @@
     .floor-entry {
       display: flex;
       align-items: center;
-      height: 80px;
-      padding: 0 10px;
+      height: 60px; /* Shorter rooms */
+      padding: 0 8px;
       border-bottom: 1px solid var(--border);
       background: url('assets/floor_bg.png') center/cover no-repeat;
       position: relative;
@@ -148,22 +148,22 @@
     }
     .floor-entry .floor-num {
       position: absolute;
-      top: 5px; left: 8px;
+      top: 4px; left: 6px;
       font-family: var(--font-display);
-      font-size: 0.9rem;
+      font-size: 0.75rem;
       color: var(--accent);
       z-index: 5;
       text-shadow: 0 0 4px black;
     }
     .wait-indicator {
       position: absolute;
-      bottom: 10px; left: 50px; right: 80px;
-      height: 48px;
+      bottom: 8px; left: 35px; right: 60px;
+      height: 36px;
       z-index: 3;
     }
     .wait-dot {
-      width: 32px;
-      height: 48px;
+      width: 24px;
+      height: 36px;
       position: absolute;
       background-size: contain;
       background-repeat: no-repeat;
@@ -177,7 +177,7 @@
 
     @keyframes walk-anim {
       from { transform: translateX(0); }
-      to { transform: translateX(40px); }
+      to { transform: translateX(30px); }
     }
 
     .call-btn {
@@ -210,30 +210,30 @@
     #shaft-area {
       flex: 1;
       position: relative;
-      background: linear-gradient(rgba(10,10,20,0.8), rgba(10,10,20,0.8)), url('assets/background.png');
+      background: linear-gradient(rgba(10,10,20,0.85), rgba(10,10,20,0.85)), url('assets/background.png');
       background-size: cover;
       background-position: center;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 40px;
+      gap: 60px; /* More gap */
       padding: 20px 40px;
-      box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+      box-shadow: inset 0 0 100px rgba(0,0,0,0.95);
     }
     .shaft {
-      width: 80px;
+      width: 100px; /* Slightly wider shafts */
       height: 100%;
       position: relative;
       background: rgba(12,12,24,0.3);
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.05);
       border-radius: 4px;
       backdrop-filter: blur(2px);
     }
     .elevator-car {
       position: absolute;
-      left: 5px;
-      right: 5px;
-      height: 60px;
+      left: 8px;
+      right: 8px;
+      height: 64px;
       background: rgba(10,20,30,0.7);
       border: 1px solid var(--accent);
       border-radius: 4px;
@@ -296,33 +296,33 @@
 
     /* right hud */
     #hud {
-      width: 250px;
+      width: 180px; /* Narrower HUD */
       background: var(--panel);
       border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      padding: 16px;
-      gap: 14px;
+      padding: 10px;
+      gap: 8px;
       overflow-y: auto;
     }
     .hud-group {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 12px;
+      border-radius: 4px;
+      padding: 8px;
     }
     .hud-label {
       font-family: var(--font-display);
-      font-size: 0.55rem;
+      font-size: 0.45rem;
       color: var(--dim);
-      letter-spacing: 2px;
-      margin-bottom: 6px;
+      letter-spacing: 1px;
+      margin-bottom: 3px;
     }
     .hud-value {
       font-family: var(--font-display);
-      font-size: 1.2rem;
+      font-size: 0.9rem;
       color: var(--accent);
-      text-shadow: 0 0 8px var(--accent-glow);
+      text-shadow: 0 0 5px var(--accent-glow);
     }
     .danger-value {
       color: var(--danger);
