@@ -120,62 +120,79 @@
 
     /* floor panel (left) */
     #floor-panel {
-      width: 160px;
+      width: 280px;
       background: var(--panel);
       border-right: 1px solid var(--border);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      padding: 8px 0;
       flex-shrink: 0;
     }
     .floor-entry {
       display: flex;
       align-items: center;
-      height: 36px;
-      padding: 4px 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
-      transition: background 0.15s;
+      height: 80px;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--border);
+      background: url('assets/floor_bg.png') center/cover no-repeat;
+      position: relative;
       cursor: pointer;
-      gap: 6px;
+      overflow: hidden;
     }
-    .floor-entry:hover {
-      background: rgba(255,255,255,0.04);
+    .floor-entry::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.3);
+      z-index: 1;
     }
-    .floor-num {
+    .floor-entry .floor-num {
+      position: absolute;
+      top: 5px; left: 8px;
       font-family: var(--font-display);
-      font-size: 0.8rem;
-      color: var(--dim);
-      width: 32px;
-      text-align: right;
-      flex-shrink: 0;
+      font-size: 0.9rem;
+      color: var(--accent);
+      z-index: 5;
+      text-shadow: 0 0 4px black;
     }
     .wait-indicator {
-      display: flex;
-      gap: 3px;
-      flex: 1;
-      align-items: center;
+      position: absolute;
+      bottom: 10px; left: 50px; right: 80px;
+      height: 48px;
+      z-index: 3;
     }
     .wait-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 2px;
-      background: #333;
+      width: 32px;
+      height: 48px;
+      position: absolute;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: bottom;
+      filter: drop-shadow(0 0 4px rgba(255,255,255,0.2));
+      animation: walk-anim linear infinite alternate;
     }
-    .wait-dot.exec { background: var(--exec); box-shadow: 0 0 6px var(--exec); }
-    .wait-dot.worker { background: var(--worker); box-shadow: 0 0 6px var(--worker); }
-    .wait-dot.drone { background: var(--drone); box-shadow: 0 0 6px var(--drone); }
+    .wait-dot.exec { background-image: url('assets/exec.png'); }
+    .wait-dot.worker { background-image: url('assets/worker.png'); }
+    .wait-dot.drone { background-image: url('assets/drone.png'); }
+
+    @keyframes walk-anim {
+      from { transform: translateX(0); }
+      to { transform: translateX(40px); }
+    }
+
     .call-btn {
-      background: var(--btn-bg);
-      border: 1px solid var(--border);
-      color: var(--dim);
+      background: rgba(0,0,0,0.7);
+      border: 1px solid var(--accent);
+      color: var(--accent);
       font-family: var(--font-display);
       font-size: 0.6rem;
-      padding: 4px 8px;
-      border-radius: 3px;
+      padding: 6px 12px;
+      border-radius: 4px;
       cursor: pointer;
+      position: absolute;
+      right: 10px; bottom: 10px;
+      z-index: 10;
       transition: all 0.2s;
-      letter-spacing: 1px;
     }
     .call-btn:hover {
       border-color: var(--accent);
@@ -251,13 +268,17 @@
       max-width: 90%;
     }
     .elevator-car .car-passengers .pass-sprite {
-      width: 6px;
-      height: 9px;
-      background-size: 300% 100%;
+      width: 10px;
+      height: 15px;
+      background-size: contain;
       background-repeat: no-repeat;
-      background-image: url('assets/sprites.png');
-      filter: brightness(1.5);
+      background-position: center;
+      filter: brightness(1.2);
     }
+    .pass-sprite.exec { background-image: url('assets/exec.png'); }
+    .pass-sprite.worker { background-image: url('assets/worker.png'); }
+    .pass-sprite.drone { background-image: url('assets/drone.png'); }
+
     .elevator-car.moving {
       border-style: dashed;
       animation: buzz 0.4s infinite;
@@ -266,32 +287,6 @@
     .elevator-car.exec-presence {
       border-color: var(--exec);
       animation: flicker 2s infinite;
-    }
-
-    .wait-dot {
-      width: 14px;
-      height: 20px;
-      border-radius: 2px;
-      background-size: 300% 100%;
-      background-repeat: no-repeat;
-      display: inline-block;
-      filter: drop-shadow(0 0 5px currentColor);
-      opacity: 0.9;
-    }
-    .wait-dot.exec { 
-      background-image: url('assets/sprites.png'); 
-      background-position: 0% center; 
-      color: var(--exec); 
-    }
-    .wait-dot.worker { 
-      background-image: url('assets/sprites.png'); 
-      background-position: 50% center; 
-      color: var(--worker); 
-    }
-    .wait-dot.drone { 
-      background-image: url('assets/sprites.png'); 
-      background-position: 100% center; 
-      color: var(--drone); 
     }
 
     @keyframes flicker {
@@ -733,7 +728,7 @@ function update(dt, elevators, floors) { }</textarea>
         for(let i=TOTAL_FLOORS-1;i>=0;i--) {
           let waiting=allPassengers.filter(p=>p.spawn===i);
           let row=document.createElement('div'); row.className='floor-entry';
-          row.innerHTML=`<span class="floor-num">${i}</span><div class="wait-indicator">${waiting.map(p=>`<span class="wait-dot ${p.cls}"></span>`).join('')}</div>`;
+          row.innerHTML=`<span class="floor-num">${i}</span><div class="wait-indicator">${waiting.map((p,idx)=>`<span class="wait-dot ${p.cls}" style="left:${idx*25}px; animation-delay:${idx*-1.5}s; animation-duration:${8+Math.random()*4}s;"></span>`).join('')}</div>`;
           let btn=document.createElement('button'); btn.className='call-btn'; btn.textContent='CALL';
           btn.onclick=(e)=>{ e.stopPropagation(); callElevator(i); btn.classList.add('called'); setTimeout(()=>btn.classList.remove('called'),1500); };
           row.appendChild(btn);
@@ -766,8 +761,7 @@ function update(dt, elevators, floors) { }</textarea>
           
           let passContainer=car.querySelector('.car-passengers');
           passContainer.innerHTML=elevators[i].pass.map(p=>{
-            let pos=p.cls==='exec'?'0%':(p.cls==='worker'?'50%':'100%');
-            return `<div class="pass-sprite" style="background-position:${pos} center;"></div>`;
+            return `<div class="pass-sprite ${p.cls}"></div>`;
           }).join('');
         }
       }
