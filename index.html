@@ -743,7 +743,80 @@ function update(dt, elevators, floors) { }</textarea>
         gameRunning=true; lastFrame=performance.now();
         initFloors(); initElevators(); renderFloors(); updateHUD();
         document.getElementById('gameover-modal').classList.add('hidden');
+        document.getElementById('gameover-modal').classList.add('hidden');
         codeActive=false; userScript=null;
       }
+
+      // Mode switching
+      document.getElementById('switch-mode-btn').addEventListener('click',()=>{
+        if(gameMode==='manual') { gameMode='code'; modeIndicator.textContent='CODE'; dispatchBtn.style.display='none'; document.getElementById('code-modal').classList.remove('hidden'); }
+        else { gameMode='manual'; modeIndicator.textContent='MANUAL'; dispatchBtn.style.display='block'; document.getElementById('code-modal').classList.add('hidden'); stopCode(); }
+      });
+      dispatchBtn.addEventListener('click',dispatchAll);
+      document.getElementById('reset-btn').addEventListener('click',reset);
+      document.getElementById('shop-btn').addEventListener('click',()=>{ renderShop(); document.getElementById('shop-modal').classList.remove('hidden'); });
+      document.getElementById('close-shop').addEventListener('click',()=>document.getElementById('shop-modal').classList.add('hidden'));
+      document.getElementById('deploy-btn').addEventListener('click',deployCode);
+      document.getElementById('stop-code-btn').addEventListener('click',stopCode);
+      document.getElementById('close-code').addEventListener('click',()=>document.getElementById('code-modal').classList.add('hidden'));
+      document.getElementById('restart-btn').addEventListener('click',reset);
+      document.querySelectorAll('.speed-btn').forEach(b=>b.addEventListener('click',function(){
+        document.querySelectorAll('.speed-btn').forEach(x=>x.classList.remove('active'));
+        this.classList.add('active'); gameSpeed=parseInt(this.dataset.speed);
+      }));
+
+      function deployCode() {
+        let code=document.getElementById('code-editor').value;
+        try {
+          let sandbox={}; new Function('sandbox',`with(sandbox){${code}; if(typeof init==='function')sandbox._init=init; if(typeof update==='function')sandbox._update=update;}`)(sandbox);
+          if(sandbox._init) { userScript={init:sandbox._init,update:sandbox._update}; sandbox._init(elevators,floorsData); codeActive=true; log('Script deployed.'); localStorage.setItem('subnetCode',code); }
+          else log('No init() found.');
+        }catch(e){ log('Error: '+e.message); }
+      }
+      function stopCode() { codeActive=false; userScript=null; elevators.forEach(e=>{e.handlers={}; e.stop();}); floorsData.forEach(f=>f.handlers={}); log('Script stopped.'); }
+      function log(msg) {
+        let con=document.getElementById('code-console'); con.textContent += '\n> '+msg; con.scrollTop=con.scrollHeight;
+      }
+      function renderShop() {
+        let items=[ 
+          {key:'speed',name:'Elevator Speed',lv:upgrades.speed,max:5,cost:[100,300,800,1500,3000],desc:'Lv.{l}: {v}s/floor',valFunc:l=>[1.0,0.6,0.4,0.25,0.15][l]},
+          {key:'capacity',name:'Max Capacity',lv:upgrades.capacity,max:5,cost:[80,250,700,1400,2800],desc:'Lv.{l}: {v} units',valFunc:l=>[8,10,12,14,16][l]},
+          {key:'door',name:'Door Boost',lv:upgrades.door?1:0,max:1,cost:[500],desc:'-30% door time',oneTime:true},
+          {key:'elev3',name:'3rd Elevator',lv:upgrades.elev3?1:0,max:1,cost:[2000],desc:'Unlock elevator 3',oneTime:true},
+          {key:'elev4',name:'4th Elevator',lv:upgrades.elev4?1:0,max:1,cost:[5000],desc:'Unlock elevator 4',oneTime:true},
+          {key:'vip',name:'VIP Patience',lv:upgrades.vip?1:0,max:1,cost:[1200],desc:'+5s exec patience',oneTime:true},
+          {key:'drone',name:'Drone Replicator',lv:upgrades.drone?1:0,max:1,cost:[1000],desc:'+1 CR per drone',oneTime:true}
+        ];
+        let html=''; items.forEach(it=>{
+          let maxed=it.oneTime?it.lv>=1:it.lv>=it.max;
+          let cost=maxed?null:(it.oneTime?it.cost[0]:it.cost[it.lv]);
+          html+=`<div class="shop-item"><div class="info"><div class="name">${it.name} ${maxed?'(MAX)':'(Lv.'+it.lv+'/'+it.max+')'}</div><div class="desc">${it.desc.replace('{l}',maxed?it.max:it.lv+1).replace('{v}',it.valFunc(maxed?it.max-1:it.lv))}</div></div><span class="cost">${maxed?'—':cost+' CR'}</span>${!maxed?`<button data-key="${it.key}">BUY</button>`:''}</div>`;
+        });
+        document.getElementById('shop-items').innerHTML=html;
+        document.getElementById('shop-credits').textContent=credits;
+        document.querySelectorAll('#shop-items button').forEach(b=>b.onclick=()=>{
+          let key=b.dataset.key, def=items.find(i=>i.key===key);
+          let lv=def.oneTime?(upgrades[key]?1:0):upgrades[key];
+          let cost=def.oneTime?def.cost[0]:def.cost[lv];
+          if(credits>=cost) {
+            credits-=cost; 
+            if(def.oneTime) upgrades[key]=true; else upgrades[key]=lv+1;
+            localStorage.setItem('subnetUpgrades',JSON.stringify(upgrades));
+            if(key==='elev3'||key==='elev4') initElevators();
+            updateHUD(); renderShop();
+          }
+        });
+      }
+
+      // init
+      function start() {
+        gameMode='manual'; modeIndicator.textContent='MANUAL'; dispatchBtn.style.display='block';
+        initFloors(); initElevators(); renderFloors(); updateHUD(); highscoreEl.textContent=highScore;
+        document.getElementById('code-modal').classList.add('hidden');
+        requestAnimationFrame(loop);
+      }
+      start();
+    })();
+  </script>
 </body>
 </html>
