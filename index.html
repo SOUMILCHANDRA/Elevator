@@ -97,6 +97,20 @@
       box-shadow: 0 0 10px var(--accent-glow);
     }
 
+    .glitch {
+      animation: glitch 0.3s infinite;
+      text-shadow: 2px 0 var(--magenta), -2px 0 var(--cyan);
+    }
+
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-2px, 2px); }
+      40% { transform: translate(-2px, -2px); }
+      60% { transform: translate(2px, 2px); }
+      80% { transform: translate(2px, -2px); }
+      100% { transform: translate(0); }
+    }
+
     /* main layout */
     #main-container {
       display: flex;
@@ -733,6 +747,10 @@ function update(dt, elevators, floors) { }</textarea>
         streakEl.textContent=(1+(streakCount-1)*0.1).toFixed(1)+'x';
         avgWaitEl.textContent=(totalDelivered? (totalWait/totalDelivered).toFixed(1):'0')+'s';
         unservedEl.textContent=unserved+' / '+MAX_UNSERVED; unservedEl.className='hud-value'+(unserved>=MAX_UNSERVED*0.7?' danger-value':'');
+        
+        const logo = document.querySelector('.logo');
+        logo.classList.toggle('glitch', unserved >= 10);
+
         highscoreEl.textContent=highScore;
         if(score>highScore) { highScore=score; localStorage.setItem('subnetHighScore',highScore); }
       }
