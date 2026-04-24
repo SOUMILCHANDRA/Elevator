@@ -41,3 +41,63 @@ The simulation handles three distinct classes with unique behaviors:
    - **Weight**: 0.5 units.
    - **Reward**: 5 CR.
    - **Zones**: Spawn anywhere 0-24. Targets lower floors.
+
+## 💰 Economic Efficiency & Scoring
+Your performance is measured in **Corporate Compliance** and **Credits (CR)**:
+- **Time Bonuses**: Delivering a passenger in less than 50% of their patience limit yields a **+50% Credit Bonus**.
+- **Wait Penalties**: Delaying a passenger past their 50% threshold incurs a **-1 CR/sec penalty**.
+- **Streak Multipliers**: Delivering units within 5s of each other builds a streak (e.g., 1.1x, 1.2x). Batch deliveries are the key to high scores.
+
+## ⚡ Infrastructure Shop (Persistent Upgrades)
+Earn credits to permanently upgrade your mega-tower's infrastructure. All purchases persist across browser sessions:
+- **Elevator Speed (5 Levels)**: Reduce travel time from 1.0s to 0.15s per floor.
+- **Max Capacity (5 Levels)**: Increase car weight limit from 8 to 16 units.
+- **Fleet Expansion**: Unlock a **3rd and 4th lift unit** to handle extreme loads.
+- **Door Boost**: Reduce door open/close cycles by 30%.
+- **VIP Priority**: Grant Executives an extra **+5s patience**.
+- **Drone Replicator**: Increase drone delivery value by **+1 CR**.
+
+## ⚠️ Termination Protocols (Loss Conditions)
+The system will fail if vertical order collapses:
+- **Load Breach**: More than **40 units** are waiting simultaneously.
+- **Service Failure**: More than **20 units** are left unserved (departure due to patience timeout).
+- **Warning State**: The system enters a warning pulse when the load exceeds 25 units.
+
+## ⚙️ Technical Specifications
+- **Standalone Engine**: Pure Vanilla JS, CSS, and HTML5. Zero external dependencies.
+- **Fixed-Timestep Physics**: Simulation logic is decoupled from framerate for deterministic behavior.
+- **Web Audio API**: Procedural sound generation for UI events and warnings.
+- **Secure Sandbox**: User scripts in Coding Mode use isolated scope evaluation with a built-in debug terminal.
+- **Persistence**: All logic, upgrades, and high scores are managed via `localStorage`.
+
+## 🛠️ Logistics Coding API
+In **LOGISTICS_CODING** mode, your script must be an object with `init` and `update` methods:
+
+```javascript
+{
+    init: function(elevators, floors) {
+        // Initial protocol setup
+        elevators.forEach(e => {
+            e.on("idle", () => { e.goToFloor(0); });
+        });
+    },
+    update: function(dt, elevators, floors) {
+        // Real-time optimization logic
+    }
+}
+```
+
+### Elevator Object API:
+- `elevator.goToFloor(num)`: Command to target floor.
+- `elevator.currentFloor`: (Float) Current vertical position.
+- `elevator.state`: "idle", "moving_up", "moving_down", "open".
+- `elevator.loadFactor()`: (Float 0-1) Weight usage.
+- `elevator.on(event, callback)`: Events like "idle", "passing_floor", "floor_button_pressed".
+
+### Floor Object API:
+- `floor.level`: Floor number (0-29).
+- `floor.waitingPassengers()`: List of passengers and their target floors.
+- `floor.on("button_pressed", callback)`: Triggered when a call is made.
+
+---
+**AUTHORIZATION GRANTED. MAINTAIN THE VERTICAL ORDER.**
