@@ -165,7 +165,7 @@
     }
     .wait-indicator {
       position: absolute;
-      bottom: 8px; left: 50px; right: 80px;
+      bottom: 8px; left: 40px; right: 40px;
       height: 80px;
       z-index: 3;
     }
@@ -178,14 +178,18 @@
       background-position: bottom;
       filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
       animation: walk-anim linear infinite alternate;
+      transition: left 0.5s;
     }
     .wait-dot.exec { background-image: url('assets/exec.png'); }
     .wait-dot.worker { background-image: url('assets/worker.png'); }
     .wait-dot.drone { background-image: url('assets/drone.png'); }
 
     @keyframes walk-anim {
-      from { transform: translateX(0); }
-      to { transform: translateX(60px); }
+      0% { transform: translateX(0) scaleX(1); }
+      48% { transform: translateX(60px) scaleX(1); }
+      52% { transform: translateX(60px) scaleX(-1); }
+      98% { transform: translateX(0) scaleX(-1); }
+      100% { transform: translateX(0) scaleX(1); }
     }
 
     .call-btn {
@@ -741,7 +745,7 @@ function update(dt, elevators, floors) { }</textarea>
         for(let i=TOTAL_FLOORS-1;i>=0;i--) {
           let waiting=allPassengers.filter(p=>p.spawn===i);
           let row=document.createElement('div'); row.className='floor-entry';
-          row.innerHTML=`<span class="floor-num">${i}</span><div class="wait-indicator">${waiting.map((p,idx)=>`<span class="wait-dot ${p.cls}" style="left:${idx*40}px; animation-delay:${idx*-2}s; animation-duration:${10+Math.random()*5}s;"></span>`).join('')}</div>`;
+          row.innerHTML=`<span class="floor-num">${i}</span><div class="wait-indicator">${waiting.map((p,idx)=>`<span class="wait-dot ${p.cls}" style="left:${idx*40}px; bottom:${-5 + Math.random()*10}px; z-index:${10-idx}; animation-delay:${idx*-2}s; animation-duration:${10+Math.random()*5}s;"></span>`).join('')}</div>`;
           let btn=document.createElement('button'); btn.className='call-btn'; btn.textContent='CALL';
           btn.onclick=(e)=>{ e.stopPropagation(); callElevator(i); btn.classList.add('called'); setTimeout(()=>btn.classList.remove('called'),1000); };
           row.appendChild(btn);
@@ -781,9 +785,12 @@ function update(dt, elevators, floors) { }</textarea>
 
       function callElevator(floor) {
         if(gameMode!=='manual') return;
-        let best=null, bestDist=Infinity;
-        elevators.forEach(e=>{ if(e.state==='idle'){ let d=Math.abs(e.floor-floor); if(d<bestDist){best=e;bestDist=d;} } });
-        if(!best) elevators.forEach(e=>{ let d=Math.abs(e.floor-floor)+e.queue.length*3; if(d<bestDist){best=e;bestDist=d;} });
+        let best=null, bestScore=Infinity;
+        elevators.forEach(e=>{
+          let dist=Math.abs(e.floor-floor);
+          let score=dist + (e.state==='idle'?0:20) + (e.queue.length*5);
+          if(score<bestScore) { best=e; bestScore=score; }
+        });
         if(best) best.goToFloor(floor);
       }
 
