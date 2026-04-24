@@ -28,3 +28,17 @@ Choose your interface at startup:
 
 ---
 **MAINTAIN THE ORDER. EARN YOUR CREDITS.**
+
+---
+## 🌆 The Vertical Divide: Lore
+The Tower is not just a building; it is a self-contained ecosystem.
+- **Zones 0-5**: The Drone Recharge & Service Docks.
+- **Zones 6-19**: The Proletariat Habitation Units.
+- **Zones 20-29**: The Neon Penthouses (Executive Airspace).
+
+Failure to maintain the flow of these zones results in "Resolution Breach"—a total shutdown of the sector's logistics.
+
+## 🛠️ Technical Architecture
+- **Sim-Render Decoupling**: The game uses a fixed-timestep simulation loop independent of the `requestAnimationFrame` render loop, ensuring consistency across high-refresh monitors.
+- **Sandboxed Scripting**: Logic Mode utilizes a `new Function` constructor within an isolated world object, preventing accidental interference with the core UI.
+- **Procedural HUD**: The UI is built using vanilla DOM elements with `backdrop-filter` for a modern, hardware-accelerated glass effect.
