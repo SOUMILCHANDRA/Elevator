@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE ASCENT | Corporate Logistics Optimizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --primary: #00f3ff;
+            --secondary: #ff0055;
+            --accent: #bc13fe;
+            --text-color: #e0e0e0;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #game-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            background: linear-gradient(0deg, #0a0a0a 0%, #050505 100%);
+        }
+
+        #render-canvas {
+            flex: 1;
+            background: #000;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-panel {
+            position: absolute;
+            padding: 20px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            pointer-events: auto;
+            pointer-events: auto;
+        }
+
+        #stats-panel {
+            top: 20px;
+            left: 20px;
+            width: 250px;
+            border-left: 4px solid var(--primary);
+        }
+
+        #control-panel {
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 250px;
+            display: flex;
+            gap: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        #editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--primary);
+            position: relative;
+        }
+
+        #code-editor {
+            flex: 1;
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 20px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .btn-secondary {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary);
+            color: #000;
+            box-shadow: 0 0 15px var(--secondary);
+        }
+
+        /* Scanline effect */
+        #ui-overlay::after {
+            content: " ";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .label {
+            font-size: 10px;
+            color: var(--primary);
+            opacity: 0.7;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .value {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        #mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .floor-indicator {
+            position: absolute;
+            right: 20px;
+            top: 100px;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 5px;
+            pointer-events: auto;
+        }
+
+        .floor-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .floor-btn.active {
+            border-color: var(--secondary);
+            color: var(--secondary);
+            box-shadow: inset 0 0 5px var(--secondary);
+        }
+        .blink {
+            animation: blink-anim 0.5s infinite;
+        }
+
+        @keyframes blink-anim {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .glitch-text {
+            font-size: 64px;
+            color: var(--primary);
+            text-shadow: 2px 2px var(--secondary), -2px -2px var(--accent);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1 class="glitch-text">THE ASCENT</h1>
+        <p style="margin-bottom: 40px; max-width: 600px; line-height: 1.6; color: #888;">
+            Welcome, Logistics Optimizer. Your objective is to manage the vertical transport units of the Mega-Corp structure. 
+            Ensure Corporate Compliance stays above 0%. Efficiency is mandatory.
+        </p>
+        <button class="btn" onclick="startGame()">INITIALIZE SYSTEM</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="render-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="stats-panel" class="hud-panel">
+                <div>
+                    <span class="label">CORPORATE COMPLIANCE</span>
+                    <div id="compliance-value" class="value">100%</div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <span class="label">WAITING LOGISTICS</span>
+                    <div id="waiting-value" class="value">0</div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <span class="label">TRANSPORTED UNITS</span>
+                    <div id="transported-value" class="value">0</div>
+                </div>
+            </div>
+
+            <div id="mode-toggle" class="hud-panel">
+                <button id="btn-manual" class="btn active">Manual Mode</button>
+                <button id="btn-coding" class="btn btn-secondary">Logic Mode</button>
+            </div>
+
+            <div id="floor-list" class="floor-indicator">
+                <!-- Floors will be generated here -->
+            </div>
+
+            <div id="control-panel" class="hud-panel">
+                <div id="editor-container">
+                    <div style="padding: 5px 15px; background: #111; font-size: 10px; color: #555; border-bottom: 1px solid #333;">
+                        OPTIMIZER_SCRIPT.JS
+                    </div>
+                    <textarea id="code-editor" spellcheck="false">{
+    init: function(elevators, floors) {
+        elevators.forEach(elevator => {
+            // When an elevator is idle, go to ground floor
+            elevator.on("idle", () => {
+                elevator.goToFloor(0);
+            });
+
+            // When floor reached, pick next in queue
+            elevator.on("floor_reached", (floorNum) => {
+                console.log(`Elevator ${elevator.id} arrived at ${floorNum}`);
+            });
+        });
+
+        floors.forEach((floor, index) => {
+            floor.on("button_pressed", () => {
+                // Find nearest elevator
+                let nearest = elevators[0];
+                let minDist = Infinity;
+                elevators.forEach(e => {
+                    let d = Math.abs(e.currentFloor - index);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = e;
+                    }
+                });
+                nearest.goToFloor(index);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+        // Real-time optimization
+    }
+}</textarea>
+                    <div style="padding: 10px; display: flex; justify-content: flex-end; gap: 10px;">
+                        <button id="btn-apply" class="btn">Apply Script</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio System
+        const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(freq, type = 'sine', duration = 0.1, volume = 0.1) {
+            const osc = AudioCtx.createOscillator();
+            const gain = AudioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, AudioCtx.currentTime);
+            gain.gain.setValueAtTime(volume, AudioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, AudioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(AudioCtx.destination);
+            osc.start();
+            osc.stop(AudioCtx.currentTime + duration);
+        }
+
+        const CONFIG = {
+            FLOOR_HEIGHT: 100,
+            ELEVATOR_WIDTH: 60,
+            ELEVATOR_HEIGHT: 80,
+            PERSON_SIZE: 20,
+            MAX_FLOORS: 10,
+            NUM_ELEVATORS: 3,
+            GRAVITY: 0.5,
+            SPEED: 5,
+            DOOR_SPEED: 0.05
+        };
+
+        class EventEmitter {
+            constructor() {
+                this.listeners = {};
+            }
+            on(event, callback) {
+                if (!this.listeners[event]) this.listeners[event] = [];
+                this.listeners[event].push(callback);
+            }
+            emit(event, ...args) {
+                if (this.listeners[event]) {
+                    this.listeners[event].forEach(cb => cb(...args));
+                }
+            }
+        }
+
+        class Elevator extends EventEmitter {
+            constructor(id, x) {
+                super();
+                this.id = id;
+                this.x = x;
+                this.y = 0;
+                this.currentFloor = 0;
+                this.targetFloor = null;
+                this.state = 'idle'; 
+                this.doorOpen = 0; 
+                this.passengers = [];
+                this.capacity = 6;
+                this.queue = [];
+                this.direction = 0; 
+                this.maxSpeed = 8;
+                this.accel = 0.2;
+                this.currentSpeed = 0;
+            }
+
+            goToFloor(floorIndex) {
+                if (!this.queue.includes(floorIndex)) {
+                    this.queue.push(floorIndex);
+                    this.queue.sort((a, b) => a - b); // Basic sort, user can override logic
+                }
+            }
+
+            getPressedFloors() {
+                return this.passengers.map(p => p.targetFloor);
+            }
+
+            loadFactor() {
+                return this.passengers.length / this.capacity;
+            }
+
+            update(dt) {
+                if (this.state === 'idle' && this.queue.length > 0) {
+                    // Simple heuristic: pick closest in queue
+                    this.queue.sort((a, b) => Math.abs(a - this.currentFloor) - Math.abs(b - this.currentFloor));
+                    this.targetFloor = this.queue.shift();
+                    this.state = 'moving';
+                    this.direction = this.targetFloor > this.currentFloor ? 1 : -1;
+                }
+
+                if (this.state === 'moving') {
+                    const targetY = this.targetFloor * CONFIG.FLOOR_HEIGHT;
+                    const dy = targetY - this.y;
+                    
+                    if (Math.abs(dy) < Math.abs(this.currentSpeed)) {
+                        this.y = targetY;
+                        this.currentFloor = this.targetFloor;
+                        this.currentSpeed = 0;
+                        this.state = 'opening';
+                        this.emit('stopped', this.currentFloor);
+                    } else {
+                        this.currentSpeed = Math.min(this.maxSpeed, Math.abs(this.currentSpeed) + this.accel) * this.direction;
+                        this.y += this.currentSpeed;
+                    }
+                }
+
+                if (this.state === 'opening') {
+                    this.doorOpen += CONFIG.DOOR_SPEED;
+                    if (this.doorOpen >= 1) {
+                        this.doorOpen = 1;
+                        this.state = 'open';
+                        this.timer = 40; 
+                        this.emit('floor_reached', this.currentFloor);
+                    }
+                }
+
+                if (this.state === 'open') {
+                    this.timer--;
+                    if (this.timer <= 0) {
+                        this.state = 'closing';
+                    }
+                }
+
+                if (this.state === 'closing') {
+                    this.doorOpen -= CONFIG.DOOR_SPEED;
+                    if (this.doorOpen <= 0) {
+                        this.doorOpen = 0;
+                        this.state = 'idle';
+                        this.emit('idle');
+                    }
+                }
+            }
+
+            draw(ctx, worldY) {
+                const screenY = ctx.canvas.height - (this.y + CONFIG.ELEVATOR_HEIGHT) + worldY;
+                
+                // Shaft Glow
+                const grad = ctx.createLinearGradient(this.x, 0, this.x + CONFIG.ELEVATOR_WIDTH, 0);
+                grad.addColorStop(0, 'rgba(0, 243, 255, 0.05)');
+                grad.addColorStop(0.5, 'rgba(0, 243, 255, 0)');
+                grad.addColorStop(1, 'rgba(0, 243, 255, 0.05)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(this.x, 0, CONFIG.ELEVATOR_WIDTH, ctx.canvas.height);
+
+                // Shaft Cables
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.x + 10, 0); ctx.lineTo(this.x + 10, ctx.canvas.height);
+                ctx.moveTo(this.x + CONFIG.ELEVATOR_WIDTH - 10, 0); ctx.lineTo(this.x + CONFIG.ELEVATOR_WIDTH - 10, ctx.canvas.height);
+                ctx.stroke();
+
+                // Car
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.state === 'moving' ? '#00f3ff' : 'transparent';
+                ctx.fillStyle = '#0a0a0a';
+                ctx.fillRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
+                
+                ctx.strokeStyle = this.state === 'moving' ? '#00f3ff' : '#333';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
+                ctx.shadowBlur = 0;
+
+                // Interior Detail
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.1)';
+                ctx.fillRect(this.x + 5, screenY + 5, CONFIG.ELEVATOR_WIDTH - 10, CONFIG.ELEVATOR_HEIGHT - 10);
+
+                // Doors
+                const doorW = (CONFIG.ELEVATOR_WIDTH / 2) * (1 - this.doorOpen);
+                const doorGrad = ctx.createLinearGradient(this.x, 0, this.x + doorW, 0);
+                doorGrad.addColorStop(0, '#111');
+                doorGrad.addColorStop(1, '#222');
+                
+                ctx.fillStyle = doorGrad;
+                ctx.fillRect(this.x, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
+                ctx.fillRect(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
+                
+                // Door Edges (Neon)
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(this.x + doorW, screenY); ctx.lineTo(this.x + doorW, screenY + CONFIG.ELEVATOR_HEIGHT);
+                ctx.moveTo(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY); ctx.lineTo(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY + CONFIG.ELEVATOR_HEIGHT);
+                ctx.stroke();
+
+                // Floor indicator HUD
+                ctx.fillStyle = '#00f3ff';
+                ctx.font = 'bold 10px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.fillText(`L${Math.round(this.y / CONFIG.FLOOR_HEIGHT)}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + 15);
+                
+                // Direction Arrow
+                if (this.direction !== 0 && this.state === 'moving') {
+                    ctx.beginPath();
+                    const arrowY = screenY + 25;
+                    const arrowX = this.x + CONFIG.ELEVATOR_WIDTH/2;
+                    if (this.direction > 0) {
+                        ctx.moveTo(arrowX - 5, arrowY + 5); ctx.lineTo(arrowX, arrowY); ctx.lineTo(arrowX + 5, arrowY + 5);
+                    } else {
+                        ctx.moveTo(arrowX - 5, arrowY - 5); ctx.lineTo(arrowX, arrowY); ctx.lineTo(arrowX + 5, arrowY - 5);
+                    }
+                    ctx.stroke();
+                }
+            }
+        }
+
+        class Person {
+            constructor(startFloor, targetFloor) {
+                this.startFloor = startFloor;
+                this.targetFloor = targetFloor;
+                this.state = 'waiting'; 
+                this.x = 20 + Math.random() * 80;
+                this.waitTimer = 0;
+                this.elevator = null;
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.color = `hsl(${180 + Math.random() * 60}, 100%, 50%)`;
+            }
+
+            update() {
+                if (this.state === 'waiting') {
+                    this.waitTimer += 1/60;
+                }
+            }
+
+            draw(ctx, worldY) {
+                if (this.state === 'inside') return;
+                
+                const y = ctx.canvas.height - (this.startFloor * CONFIG.FLOOR_HEIGHT + 20) + worldY;
+                
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath();
+                ctx.ellipse(this.x, y + 10, 8, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                if (this.waitTimer > 15) {
+                    ctx.shadowColor = '#ff0055';
+                    ctx.fillStyle = '#ff0055';
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Target Display
+                ctx.fillStyle = '#fff';
+                ctx.font = '8px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.targetFloor, this.x, y - 10);
+            }
+        }
+
+        class World extends EventEmitter {
+            constructor(canvas) {
+                super();
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.elevators = [];
+                this.floors = [];
+                this.people = [];
+                this.compliance = 100;
+                this.transported = 0;
+                this.worldY = 0;
+                this.mode = 'manual';
+
+                for (let i = 0; i < CONFIG.NUM_ELEVATORS; i++) {
+                    this.elevators.push(new Elevator(i, 150 + i * 100));
+                }
+
+                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
+                    const floorObj = new EventEmitter();
+                    floorObj.level = i;
+                    this.floors.push(floorObj);
+                }
+
+                this.initUI();
+            }
+
+            initUI() {
+                const floorList = document.getElementById('floor-list');
+                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
+                    const btn = document.createElement('div');
+                    btn.className = 'floor-btn';
+                    btn.id = `floor-btn-${i}`;
+                    btn.innerText = i;
+                    btn.onclick = () => this.callElevator(i);
+                    floorList.appendChild(btn);
+                }
+
+                document.getElementById('btn-manual').onclick = () => this.setMode('manual');
+                document.getElementById('btn-coding').onclick = () => this.setMode('coding');
+                document.getElementById('btn-apply').onclick = () => this.applyScript();
+            }
+
+            setMode(mode) {
+                this.mode = mode;
+                document.getElementById('btn-manual').classList.toggle('active', mode === 'manual');
+                document.getElementById('btn-coding').classList.toggle('active', mode === 'coding');
+                document.getElementById('control-panel').style.transform = mode === 'coding' ? 'translateY(0)' : 'translateY(300px)';
+            }
+
+            callElevator(floorIndex) {
+                if (this.gameOver) return;
+                
+                if (this.mode === 'manual') {
+                    let nearest = null;
+                    let minDist = Infinity;
+                    this.elevators.forEach(e => {
+                        const dist = Math.abs(e.currentFloor - floorIndex);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearest = e;
+                        }
+                    });
+                    if (nearest) nearest.goToFloor(floorIndex);
+                }
+                
+                // Visual feedback
+                const btn = document.getElementById(`floor-btn-${floorIndex}`);
+                if (!btn.classList.contains('active')) {
+                    btn.classList.add('active');
+                    playSound(440, 'square', 0.05, 0.02);
+                }
+                
+                // Emit event for script
+                this.floors[floorIndex].emit('button_pressed');
+            }
+
+            spawnPerson() {
+                if (this.gameOver) return;
+                const start = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
+                let target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
+                while (target === start) target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
+                
+                const person = new Person(start, target);
+                this.people.push(person);
+                this.callElevator(start);
+            }
+
+            update() {
+                if (this.gameOver) return;
+
+                this.elevators.forEach(e => {
+                    e.update(1/60);
+                    // Turn off floor button when elevator arrives
+                    if (e.state === 'opening') {
+                        const btn = document.getElementById(`floor-btn-${e.currentFloor}`);
+                        if (btn.classList.contains('active')) {
+                            btn.classList.remove('active');
+                            playSound(880, 'sine', 0.2, 0.05);
+                        }
+                    }
+                });
+
+                this.people.forEach(p => {
+                    p.update();
+                    
+                    if (p.state === 'waiting') {
+                        const elevator = this.elevators.find(e => 
+                            e.currentFloor === p.startFloor && 
+                            e.state === 'open' && 
+                            e.passengers.length < e.capacity
+                        );
+                        if (elevator) {
+                            p.state = 'inside';
+                            p.elevator = elevator;
+                            elevator.passengers.push(p);
+                            if (this.mode === 'manual') elevator.goToFloor(p.targetFloor);
+                        }
+                    }
+
+                    if (p.state === 'inside') {
+                        if (p.elevator.currentFloor === p.targetFloor && p.elevator.state === 'open') {
+                            p.state = 'done';
+                            this.transported++;
+                            p.elevator.passengers = p.elevator.passengers.filter(pass => pass !== p);
+                            playSound(660, 'sine', 0.1, 0.02);
+                        }
+                    }
+                });
+
+                this.people = this.people.filter(p => p.state !== 'done');
+
+                // Difficulty scaling
+                const spawnChance = 0.01 + (this.transported / 500);
+                if (Math.random() < spawnChance) this.spawnPerson();
+
+                // Update HUD
+                document.getElementById('waiting-value').innerText = this.people.filter(p => p.state === 'waiting').length;
+                document.getElementById('transported-value').innerText = this.transported;
+                
+                const avgWait = this.people.length > 0 ? this.people.reduce((acc, p) => acc + p.waitTimer, 0) / this.people.length : 0;
+                this.compliance = Math.max(0, 100 - avgWait * 4);
+                document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
+                
+                if (this.compliance < 30) {
+                    document.getElementById('compliance-value').style.color = '#ff0055';
+                    document.getElementById('compliance-value').classList.add('blink');
+                } else {
+                    document.getElementById('compliance-value').style.color = '#00f3ff';
+                    document.getElementById('compliance-value').classList.remove('blink');
+                }
+
+                if (this.compliance <= 0) {
+                    this.endGame();
+                }
+            }
+
+            endGame() {
+                this.gameOver = true;
+                const overlay = document.createElement('div');
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.background = 'rgba(255, 0, 85, 0.3)';
+                overlay.style.backdropFilter = 'blur(20px)';
+                overlay.style.display = 'flex';
+                overlay.style.flexDirection = 'column';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+                overlay.style.zIndex = '1000';
+                overlay.style.color = '#fff';
+                overlay.innerHTML = `
+                    <h1 style="font-size: 48px; margin-bottom: 20px; text-shadow: 0 0 20px #ff0055;">CORPORATE TERMINATION</h1>
+                    <p style="font-size: 18px; margin-bottom: 40px;">Productivity threshold breached. Your services are no longer required.</p>
+                    <div style="font-size: 24px; margin-bottom: 40px;">UNITS TRANSPORTED: ${this.transported}</div>
+                    <button class="btn" onclick="location.reload()">REBOOT SYSTEM</button>
+                `;
+                document.body.appendChild(overlay);
+                playSound(110, 'sawtooth', 1.5, 0.2);
+            }
+
+            draw() {
+                // Background Gradient
+                const bgGrad = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                bgGrad.addColorStop(0, '#050505');
+                bgGrad.addColorStop(1, '#0a0a0f');
+                this.ctx.fillStyle = bgGrad;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw floors
+                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
+                    const y = this.canvas.height - (i * CONFIG.FLOOR_HEIGHT) + this.worldY;
+                    
+                    // Floor Line
+                    this.ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+
+                    // Floor Number
+                    this.ctx.fillStyle = 'rgba(0, 243, 255, 0.2)';
+                    this.ctx.font = 'bold 40px Orbitron';
+                    this.ctx.textAlign = 'left';
+                    this.ctx.fillText(i.toString().padStart(2, '0'), 20, y - 10);
+                }
+
+                this.elevators.forEach(e => e.draw(this.ctx, this.worldY));
+                this.people.forEach(p => p.draw(this.ctx, this.worldY));
+
+                // Vignette
+                const vig = this.ctx.createRadialGradient(this.canvas.width/2, this.canvas.height/2, 0, this.canvas.width/2, this.canvas.height/2, this.canvas.width);
+                vig.addColorStop(0, 'rgba(0,0,0,0)');
+                vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+                this.ctx.fillStyle = vig;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            applyScript() {
+                const code = document.getElementById('code-editor').value;
+                try {
+                    // Reset listeners to avoid duplicates
+                    this.elevators.forEach(e => e.listeners = {});
+                    this.floors.forEach(f => f.listeners = {});
+                    
+                    const script = eval(`(${code})`);
+                    if (script.init) {
+                        script.init(this.elevators, this.floors);
+                    }
+                    this.userUpdate = script.update;
+                    console.log("System override successful. Logistics optimized.");
+                } catch (e) {
+                    alert("OVERRIDE FAILED: " + e.message);
+                }
+            }
+        }
+
+        window.startGame = () => {
+            AudioCtx.resume();
+            document.getElementById('start-screen').style.display = 'none';
+            initGame();
+        };
+
+        function initGame() {
+            const canvas = document.getElementById('render-canvas');
+            const world = new World(canvas);
+
+            function resize() {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            function loop() {
+                world.update();
+                if (world.userUpdate) {
+                    try {
+                        world.userUpdate(1/60, world.elevators, world.floors);
+                    } catch(e) {}
+                }
+                world.draw();
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+    </script>
+</body>
+</html>
