@@ -360,15 +360,17 @@
         }
 
         const CONFIG = {
-            FLOOR_HEIGHT: 100,
-            ELEVATOR_WIDTH: 60,
-            ELEVATOR_HEIGHT: 80,
+            FLOOR_HEIGHT: 120,
+            ELEVATOR_WIDTH: 70,
+            ELEVATOR_HEIGHT: 90,
             PERSON_SIZE: 20,
-            MAX_FLOORS: 10,
-            NUM_ELEVATORS: 3,
-            GRAVITY: 0.5,
-            SPEED: 5,
-            DOOR_SPEED: 0.05
+            MAX_FLOORS: 30,
+            NUM_ELEVATORS: 2,
+            SPEED: 1, // Floor per tick
+            DOOR_SPEED: 0.1,
+            SIM_SPEED: 10,
+            LOSS_THRESHOLD: 25,
+            WAIT_TIME_CAP: 300
         };
 
         class EventEmitter {
