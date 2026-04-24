@@ -331,6 +331,58 @@
             75% { text-shadow: -3px -3px var(--secondary), 3px 3px var(--accent); }
             100% { text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent); }
         }
+
+        #shop-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 13, 13, 0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px;
+            overflow-y: auto;
+            pointer-events: auto;
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 30px;
+        }
+
+        .shop-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+
+        .shop-card:hover { border-color: var(--primary); background: rgba(0, 240, 255, 0.05); }
+        .shop-card h4 { color: var(--primary); letter-spacing: 1px; }
+        .shop-card p { font-size: 11px; color: #888; font-family: 'JetBrains Mono'; }
+        .shop-card .cost { font-size: 18px; color: var(--accent); font-weight: bold; }
+
+        #confirm-modal {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #0d0d0d;
+            border: 2px solid var(--secondary);
+            padding: 30px;
+            z-index: 2100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 0 50px rgba(255, 0, 200, 0.3);
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
@@ -390,10 +442,10 @@
                 </div>
             </div>
 
-            <div id="shop-panel" class="hud-panel">
-                <span class="label">LOGISTICS_SHOP</span>
-                <button class="btn btn-secondary" style="font-size: 10px; padding: 5px 10px;" onclick="world.buyUpgrade()">UPGRADE_SPEED (500)</button>
-                <button class="btn btn-secondary" style="font-size: 10px; padding: 5px 10px;" onclick="world.dispatchAll()">DISPATCH_ALL</button>
+            <div id="shop-panel" class="hud-panel" style="left: 20px; top: 220px; width: 250px; border-left: 4px solid var(--accent);">
+                <span class="label">INFRASTRUCTURE_TERMINAL</span>
+                <button class="btn btn-secondary" style="width: 100%; font-size: 12px;" onclick="world.toggleShop(true)">OPEN SHOP</button>
+                <button class="btn" style="width: 100%; font-size: 10px; margin-top: 10px;" onclick="world.dispatchAll()">OPTIMIZE ALL</button>
             </div>
 
             <div id="manual-ui">
@@ -442,6 +494,23 @@
         </div>
     </div>
 
+    <div id="shop-overlay">
+        <div style="display: flex; justify-content: space-between; width: 100%; max-width: 1200px; align-items: center;">
+            <h1 class="glitch-text" style="font-size: 32px; margin-bottom: 0;">INFRASTRUCTURE_SHOP</h1>
+            <button class="btn" onclick="world.toggleShop(false)">EXIT_TERMINAL</button>
+        </div>
+        <div class="shop-grid" id="shop-grid"></div>
+    </div>
+
+    <div id="confirm-modal">
+        <h3 id="confirm-title">CONFIRM_PURCHASE</h3>
+        <p id="confirm-desc" style="font-size: 12px; color: #888; text-align: center;"></p>
+        <div style="display: flex; gap: 20px;">
+            <button class="btn" id="confirm-yes">AUTHORIZE</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('confirm-modal').style.display='none'">ABORT</button>
+        </div>
+    </div>
+
     <script>
         const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(freq, type = 'sine', duration = 0.1, volume = 0.1) {
@@ -467,7 +536,10 @@
             DOOR_SPEED: 0.1,
             SIM_SPEED: 10,
             LOSS_THRESHOLD: 25,
-            WAIT_TIME_CAP: 300
+            WAIT_TIME_CAP: 300,
+            CAPACITY: 8,
+            EXEC_PATIENCE_BUFF: 0,
+            DRONE_POINT_BUFF: 0
         };
 
         class EventEmitter {
@@ -491,7 +563,7 @@
                 this.state = 'idle'; 
                 this.doorOpen = 0; 
                 this.passengers = [];
-                this.capacity = 6;
+                this.capacity = CONFIG.CAPACITY;
                 this.destinationQueue = [];
                 this.direction = 0; 
                 this.timer = 0;
@@ -616,7 +688,7 @@
                     case 'EXEC':
                         this.color = '#ff00c8';
                         this.weight = 2;
-                        this.maxWait = 15;
+                        this.maxWait = 15 + CONFIG.EXEC_PATIENCE_BUFF;
                         this.reward = 20;
                         this.penalty = 50;
                         this.tier = 'EXEC';
@@ -633,7 +705,7 @@
                         this.color = '#39ff14';
                         this.weight = 0.5;
                         this.maxWait = 60;
-                        this.reward = 5;
+                        this.reward = 5 + CONFIG.DRONE_POINT_BUFF;
                         this.penalty = 5;
                         this.tier = 'DRONE';
                         break;
@@ -711,7 +783,18 @@
                 this.lastDeliveryTime = 0;
                 this.streakCount = 0;
                 this.highScore = localStorage.getItem('subnet_lift_highscore') || 0;
+                
+                this.upgrades = JSON.parse(localStorage.getItem('subnet_lift_upgrades')) || {
+                    speed: 0,
+                    capacity: 0,
+                    acceleration: 0,
+                    extraElevators: 0,
+                    vipPriority: 0,
+                    droneReplicator: 0
+                };
 
+                this.applyUpgrades();
+                
                 for (let i = 0; i < CONFIG.NUM_ELEVATORS; i++) {
                     this.elevators.push(new Elevator(i, 160 + i * 150));
                 }
@@ -798,12 +881,75 @@
                 document.getElementById('shop-panel').style.display = mode === 'manual' ? 'flex' : 'none';
             }
 
-            buyUpgrade() {
-                if (this.credits >= 500) {
-                    this.credits -= 500;
-                    CONFIG.SPEED += 0.2;
-                    playSound(880, 'square', 0.3, 0.1);
-                }
+            applyUpgrades() {
+                const speedValues = [1.0, 0.6, 0.4, 0.25, 0.15];
+                const capacityValues = [8, 10, 12, 14, 16];
+                
+                CONFIG.SPEED = speedValues[this.upgrades.speed];
+                CONFIG.CAPACITY = capacityValues[this.upgrades.capacity];
+                CONFIG.DOOR_SPEED = this.upgrades.acceleration ? 0.13 : 0.1;
+                CONFIG.NUM_ELEVATORS = 2 + this.upgrades.extraElevators;
+                CONFIG.EXEC_PATIENCE_BUFF = this.upgrades.vipPriority ? 5 : 0;
+                CONFIG.DRONE_POINT_BUFF = this.upgrades.droneReplicator ? 1 : 0;
+            }
+
+            toggleShop(show) {
+                const overlay = document.getElementById('shop-overlay');
+                overlay.style.display = show ? 'flex' : 'none';
+                if (show) this.renderShop();
+            }
+
+            renderShop() {
+                const grid = document.getElementById('shop-grid');
+                grid.innerHTML = '';
+                
+                const items = [
+                    { id: 'speed', name: 'Elevator Speed', desc: 'Reduce floor travel time.', levels: 5, costs: [100, 300, 800, 1500, 3000] },
+                    { id: 'capacity', name: 'Max Capacity', desc: 'Increase total weight capacity.', levels: 5, costs: [80, 250, 700, 1400, 2800] },
+                    { id: 'acceleration', name: 'Door Boost', desc: 'Reduce open/close time by 30%.', levels: 1, costs: [500] },
+                    { id: 'extraElevators', name: 'Extra Elevator', desc: 'Deploy an additional lift unit.', levels: 2, costs: [2000, 5000] },
+                    { id: 'vipPriority', name: 'VIP Priority', desc: 'Executives get +5s patience.', levels: 1, costs: [1200] },
+                    { id: 'droneReplicator', name: 'Drone Replicator', desc: 'Drones yield +1 extra point.', levels: 1, costs: [1000] }
+                ];
+
+                items.forEach(item => {
+                    const currentLevel = this.upgrades[item.id];
+                    const isMax = currentLevel >= item.levels;
+                    const cost = isMax ? 'MAXED' : item.costs[currentLevel];
+                    
+                    const card = document.createElement('div');
+                    card.className = 'shop-card';
+                    card.innerHTML = `
+                        <h4>${item.name.toUpperCase()}</h4>
+                        <p>${item.desc}</p>
+                        <div class="label">LEVEL: ${currentLevel} / ${item.levels}</div>
+                        <div class="cost">${isMax ? 'MAXED' : cost + ' CR'}</div>
+                        <button class="btn" ${isMax ? 'disabled' : ''} onclick="world.confirmPurchase('${item.id}', ${cost})">PURCHASE</button>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            confirmPurchase(id, cost) {
+                if (this.credits < cost) { alert("INSUFFICIENT_FUNDS"); return; }
+                const modal = document.getElementById('confirm-modal');
+                const title = document.getElementById('confirm-title');
+                const desc = document.getElementById('confirm-desc');
+                const yesBtn = document.getElementById('confirm-yes');
+                
+                modal.style.display = 'flex';
+                title.innerText = `AUTHORIZE_${id.toUpperCase()}`;
+                desc.innerText = `Proceed with transaction of ${cost} CR?`;
+                yesBtn.onclick = () => {
+                    this.credits -= cost;
+                    this.upgrades[id]++;
+                    localStorage.setItem('subnet_lift_upgrades', JSON.stringify(this.upgrades));
+                    modal.style.display = 'none';
+                    this.applyUpgrades();
+                    this.renderShop();
+                    playSound(660, 'square', 0.2, 0.1);
+                    if (id === 'extraElevators') location.reload(); // Reload to re-init elevators
+                };
             }
 
             dispatchAll() {
