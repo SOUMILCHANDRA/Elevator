@@ -222,20 +222,96 @@
             50% { opacity: 0.3; }
         }
 
-        #start-screen {
+        #mode-selection {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: #0d0d0d;
-            z-index: 2000;
+            z-index: 3000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 40px;
+        }
+
+        .mode-card {
+            width: 350px;
+            padding: 30px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 20px;
+        }
+
+        .mode-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .mode-card h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .mode-card p {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.6;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        #manual-ui {
+            position: absolute;
+            top: 20px;
+            left: 290px;
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .elevator-control {
+            width: 180px;
+            background: rgba(13, 13, 13, 0.9);
+            border: 1px solid var(--primary);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-btn {
+            font-size: 9px;
+            padding: 5px;
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .control-btn:hover {
+            background: var(--primary);
+            color: #000;
+        }
+
+        #shop-panel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            pointer-events: auto;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border: 1px solid var(--accent);
         }
 
         .glitch-text {
@@ -268,6 +344,20 @@
     </style>
 </head>
 <body>
+    <div id="mode-selection" style="display: none;">
+        <h1 class="glitch-text" style="font-size: 48px;">SELECT_INTERFACE</h1>
+        <div style="display: flex; gap: 40px;">
+            <div class="mode-card" onclick="selectMode('manual')">
+                <h3>MANUAL_CONTROL</h3>
+                <p>Direct intervention. Optimize the vertical flow through strategic dispatch and manual overrides.</p>
+            </div>
+            <div class="mode-card" onclick="selectMode('coding')">
+                <h3>LOGISTICS_CODING</h3>
+                <p>Programmatic optimization. Inject JavaScript protocols to automate the mega-tower's infrastructure.</p>
+            </div>
+        </div>
+    </div>
+
     <div id="start-screen">
         <h1 class="glitch-text">SUBNET LIFT</h1>
         <h2 style="font-size: 18px; color: var(--accent); margin-bottom: 30px; letter-spacing: 4px;">VERTICAL ORDER</h2>
@@ -276,7 +366,7 @@
             The tower is divided. DRONES in the slums, WORKERS in the hub, EXECUTIVES in the penthouse.
             Maintain the vertical flow. Corporate compliance is your only lifeline.
         </p>
-        <button class="btn" onclick="startGame()">INITIALIZE_UPLINK</button>
+        <button class="btn" onclick="showModeSelection()">INITIALIZE_UPLINK</button>
     </div>
 
     <div id="game-container">
@@ -289,13 +379,23 @@
                     <div id="compliance-value" class="value">100%</div>
                 </div>
                 <div style="margin-top: 15px;">
+                    <span class="label">CREDITS</span>
+                    <div id="credits-value" class="value" style="color: var(--accent);">0</div>
+                </div>
+                <div style="margin-top: 15px;">
                     <span class="label">SYSTEM LOAD</span>
                     <div id="load-value" class="value">0%</div>
                 </div>
-                <div style="margin-top: 15px;">
-                    <span class="label">SIMULATION CLOCK</span>
-                    <div id="sim-value" class="value">10x</div>
-                </div>
+            </div>
+
+            <div id="shop-panel" class="hud-panel">
+                <span class="label">LOGISTICS_SHOP</span>
+                <button class="btn btn-secondary" style="font-size: 10px; padding: 5px 10px;" onclick="world.buyUpgrade()">UPGRADE_SPEED (500)</button>
+                <button class="btn btn-secondary" style="font-size: 10px; padding: 5px 10px;" onclick="world.dispatchAll()">DISPATCH_ALL</button>
+            </div>
+
+            <div id="manual-ui">
+                <!-- Elevator controls will be generated here -->
             </div>
 
             <div id="mode-toggle" class="hud-panel">
