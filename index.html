@@ -817,10 +817,35 @@ function update(dt, elevators, floors) { }</textarea>
 
       // init
       function start() {
+        // Boot Sequence
+        const bootOverlay = document.getElementById('boot-overlay');
+        const bootLog = document.getElementById('boot-log');
+        const lines = [
+          "SEARCHING FOR NEURAL LINKS...",
+          "ESTABLISHING SECURE PROTOCOL 20.4...",
+          "LOADING VERTICAL_ORDER MODULES...",
+          "SYNCING ELEVATOR CORE_DRIVERS...",
+          "ACCESS GRANTED. WELCOME OPERATOR."
+        ];
+        let i = 0;
+        const interval = setInterval(() => {
+          if (i < lines.length) {
+            bootLog.innerHTML += `<br>> ${lines[i++]}`;
+          } else {
+            clearInterval(interval);
+            setTimeout(() => {
+              bootOverlay.classList.add('hidden');
+              gameRunning=true; 
+              lastFrame=performance.now();
+              requestAnimationFrame(loop);
+            }, 800);
+          }
+        }, 300);
+
         gameMode='manual'; modeIndicator.textContent='MANUAL'; dispatchBtn.style.display='block';
         initFloors(); initElevators(); renderFloors(); updateHUD(); highscoreEl.textContent=highScore;
         document.getElementById('code-modal').classList.add('hidden');
-        requestAnimationFrame(loop);
+        gameRunning = false; // Stay paused until boot ends
       }
       start();
     })();
