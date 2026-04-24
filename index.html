@@ -289,12 +289,12 @@
                     <div id="compliance-value" class="value">100%</div>
                 </div>
                 <div style="margin-top: 15px;">
-                    <span class="label">WAITING LOGISTICS</span>
-                    <div id="waiting-value" class="value">0</div>
+                    <span class="label">SYSTEM LOAD</span>
+                    <div id="load-value" class="value">0%</div>
                 </div>
                 <div style="margin-top: 15px;">
-                    <span class="label">TRANSPORTED UNITS</span>
-                    <div id="transported-value" class="value">0</div>
+                    <span class="label">SIMULATION CLOCK</span>
+                    <div id="sim-value" class="value">10x</div>
                 </div>
             </div>
 
@@ -434,38 +434,37 @@
                 if (this.state === 'moving') {
                     const targetY = this.targetFloor * CONFIG.FLOOR_HEIGHT;
                     const dy = targetY - this.y;
+                    const moveStep = CONFIG.SPEED * CONFIG.FLOOR_HEIGHT * dt;
                     
-                    if (Math.abs(dy) < Math.abs(this.currentSpeed)) {
+                    if (Math.abs(dy) <= Math.abs(moveStep)) {
                         this.y = targetY;
                         this.currentFloor = this.targetFloor;
-                        this.currentSpeed = 0;
                         this.state = 'opening';
                         this.emit('stopped', this.currentFloor);
                     } else {
-                        this.currentSpeed = Math.min(this.maxSpeed, Math.abs(this.currentSpeed) + this.accel) * this.direction;
-                        this.y += this.currentSpeed;
+                        this.y += Math.sign(dy) * moveStep;
                     }
                 }
 
                 if (this.state === 'opening') {
-                    this.doorOpen += CONFIG.DOOR_SPEED;
+                    this.doorOpen += CONFIG.DOOR_SPEED * (dt * 60); 
                     if (this.doorOpen >= 1) {
                         this.doorOpen = 1;
                         this.state = 'open';
-                        this.timer = 40; 
+                        this.timer = 1.0; 
                         this.emit('floor_reached', this.currentFloor);
                     }
                 }
 
                 if (this.state === 'open') {
-                    this.timer--;
+                    this.timer -= dt;
                     if (this.timer <= 0) {
                         this.state = 'closing';
                     }
                 }
 
                 if (this.state === 'closing') {
-                    this.doorOpen -= CONFIG.DOOR_SPEED;
+                    this.doorOpen -= CONFIG.DOOR_SPEED * (dt * 60);
                     if (this.doorOpen <= 0) {
                         this.doorOpen = 0;
                         this.state = 'idle';
@@ -694,12 +693,12 @@
                 this.callElevator(start);
             }
 
-            update() {
+            update(dt) {
                 if (this.gameOver) return;
                 this.pulse = (this.pulse + 0.05) % (Math.PI * 2);
 
                 this.elevators.forEach(e => {
-                    e.update(1/60);
+                    e.update(dt);
                     if (e.state === 'opening') {
                         const btn = document.getElementById(`floor-btn-${e.currentFloor}`);
                         if (btn.classList.contains('active')) {
@@ -709,9 +708,12 @@
                     }
                 });
 
+                let maxWait = 0;
                 this.people.forEach(p => {
-                    p.update();
                     if (p.state === 'waiting') {
+                        p.waitTimer += dt;
+                        maxWait = Math.max(maxWait, p.waitTimer);
+                        
                         const elevator = this.elevators.find(e => 
                             e.currentFloor === p.startFloor && 
                             e.state === 'open' && 
@@ -736,17 +738,19 @@
 
                 this.people = this.people.filter(p => p.state !== 'done');
 
-                const spawnChance = 0.01 + (this.transported / 500);
+                const spawnChance = 0.02 * dt * 60; // Scale spawn chance to time
                 if (Math.random() < spawnChance) this.spawnPerson();
 
-                document.getElementById('waiting-value').innerText = this.people.filter(p => p.state === 'waiting').length;
-                document.getElementById('transported-value').innerText = this.transported;
+                const waitingCount = this.people.filter(p => p.state === 'waiting').length;
+                const systemLoad = Math.min(100, (waitingCount / CONFIG.LOSS_THRESHOLD) * 100);
                 
-                const avgWait = this.people.length > 0 ? this.people.reduce((acc, p) => acc + p.waitTimer, 0) / this.people.length : 0;
-                this.compliance = Math.max(0, 100 - avgWait * 4);
+                document.getElementById('load-value').innerText = Math.round(systemLoad) + "%";
+                document.getElementById('sim-value').innerText = CONFIG.SIM_SPEED + "x";
+                
+                this.compliance = Math.max(0, 100 - (maxWait / CONFIG.WAIT_TIME_CAP) * 100);
                 document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
                 
-                if (this.compliance < 30) {
+                if (this.compliance < 30 || systemLoad > 80) {
                     document.getElementById('compliance-value').style.color = '#ff00c8';
                     document.getElementById('compliance-value').classList.add('blink');
                 } else {
@@ -754,7 +758,7 @@
                     document.getElementById('compliance-value').classList.remove('blink');
                 }
 
-                if (this.compliance <= 0) this.endGame();
+                if (this.compliance <= 0 || waitingCount >= CONFIG.LOSS_THRESHOLD) this.endGame();
             }
 
             draw() {
