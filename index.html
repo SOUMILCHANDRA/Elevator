@@ -376,6 +376,18 @@
                     <span class="label">SYSTEM LOAD</span>
                     <div id="load-value" class="value">0%</div>
                 </div>
+                <div style="margin-top: 15px;">
+                    <span class="label">STREAK</span>
+                    <div id="streak-value" class="value" style="color: var(--secondary);">1.0x</div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <span class="label">AVG WAIT</span>
+                    <div id="avg-wait-value" class="value">0s</div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <span class="label">HIGH SCORE</span>
+                    <div id="high-score-value" class="value" style="color: var(--accent);">0</div>
+                </div>
             </div>
 
             <div id="shop-panel" class="hud-panel">
@@ -695,12 +707,25 @@
                 this.worldY = 0;
                 this.mode = 'manual';
                 this.pulse = 0;
-                for (let i = 0; i < CONFIG.NUM_ELEVATORS; i++) { this.elevators.push(new Elevator(i, 160 + i * 150)); }
-                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) { this.floors.push(new Floor(i)); }
+                this.totalWaitTime = 0;
+                this.lastDeliveryTime = 0;
+                this.streakCount = 0;
+                this.highScore = localStorage.getItem('subnet_lift_highscore') || 0;
+
+                for (let i = 0; i < CONFIG.NUM_ELEVATORS; i++) {
+                    this.elevators.push(new Elevator(i, 160 + i * 150));
+                }
+
+                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
+                    this.floors.push(new Floor(i));
+                }
+
                 this.initUI();
                 this.initInput();
+                
                 const savedCode = localStorage.getItem('subnet_lift_code');
                 if (savedCode) document.getElementById('code-editor').value = savedCode;
+                document.getElementById('high-score-value').innerText = this.highScore;
             }
 
             initInput() {
@@ -847,20 +872,59 @@
                     if (p.state === 'inside' && p.elevator.currentFloor === p.targetFloor && p.elevator.state === 'open') {
                         p.state = 'done';
                         this.transported++;
-                        let reward = p.reward;
-                        if (p.type === 'EXEC') {
-                            const speedBonus = Math.max(0, Math.floor((p.maxWait - p.waitTimer) * 2));
-                            reward += speedBonus;
+                        this.totalWaitTime += p.waitTimer;
+
+                        // Streak Logic
+                        const now = Date.now();
+                        if (now - this.lastDeliveryTime < 5000) {
+                            this.streakCount++;
+                        } else {
+                            this.streakCount = 0;
                         }
-                        this.credits += reward;
+                        this.lastDeliveryTime = now;
+                        const streakMultiplier = 1 + (this.streakCount * 0.1);
+
+                        // Base Reward & Time Bonus
+                        let reward = p.reward;
+                        if (p.waitTimer < p.maxWait / 2) {
+                            reward *= 1.5; // 50% Bonus
+                        }
+
+                        // Wait Time Penalty
+                        if (p.waitTimer > p.maxWait / 2) {
+                            const penalty = Math.floor(p.waitTimer - p.maxWait / 2);
+                            reward = Math.max(0, reward - penalty);
+                        }
+
+                        this.credits += Math.floor(reward * streakMultiplier);
+                        
+                        // Update High Score
+                        if (this.credits > this.highScore) {
+                            this.highScore = this.credits;
+                            localStorage.setItem('subnet_lift_highscore', this.highScore);
+                            document.getElementById('high-score-value').innerText = this.highScore;
+                        }
+
                         p.elevator.passengers = p.elevator.passengers.filter(pass => pass !== p);
                     }
                 });
+
                 this.people = this.people.filter(p => p.state !== 'done');
                 if (Math.random() < 0.02 * dt * 60) this.spawnPerson();
+
                 const waitingCount = this.people.filter(p => p.state === 'waiting').length;
                 document.getElementById('load-value').innerText = Math.round((waitingCount/CONFIG.LOSS_THRESHOLD)*100) + "%";
                 document.getElementById('credits-value').innerText = this.credits;
+                
+                // Update Multi-Stats
+                const avgWait = this.transported > 0 ? (this.totalWaitTime / this.transported) : 0;
+                document.getElementById('avg-wait-value').innerText = avgWait.toFixed(1) + "s";
+                
+                const streakDisplay = 1 + (this.streakCount * 0.1);
+                const streakEl = document.getElementById('streak-value');
+                streakEl.innerText = streakDisplay.toFixed(1) + "x";
+                streakEl.style.textShadow = this.streakCount > 0 ? `0 0 10px var(--secondary)` : 'none';
+
                 this.compliance = Math.max(0, 100 - (maxWait / CONFIG.WAIT_TIME_CAP) * 100);
                 document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
                 if (this.compliance <= 0 || waitingCount >= CONFIG.LOSS_THRESHOLD) this.endGame();
