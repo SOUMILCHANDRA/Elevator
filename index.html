@@ -521,5 +521,94 @@ function update(dt, elevators, floors) { }</textarea>
       const highscoreEl = document.getElementById('highscore-val');
       const modeIndicator = document.getElementById('mode-indicator');
       const dispatchBtn = document.getElementById('dispatch-btn');
+
+      // Helper: upgrade values
+      function getSpeed() { return [1.0,0.6,0.4,0.25,0.15][upgrades.speed] || 1.0; }
+      function getCapacity() { return [8,10,12,14,16][upgrades.capacity] || 8; }
+      function getDoor() { return upgrades.door ? DOOR_TIME*0.7 : DOOR_TIME; }
+      function getTotalElevators() { let n=INITIAL_ELEVATORS; if(upgrades.elev3)n++; if(upgrades.elev4)n++; return Math.min(n,MAX_ELEVATORS); }
+      function getExecPat() { return upgrades.vip ? 20 : 15; }
+      function droneBonus() { return upgrades.drone ? 1 : 0; }
+
+      class Passenger {
+        constructor(floor,dest,cls) {
+          this.spawn=floor; this.dest=dest; this.cls=cls; this.spawnTime=gameTime;
+        }
+        get patience() { return this.cls==='exec'?getExecPat():this.cls==='worker'?30:60; }
+        get weight() { return this.cls==='exec'?2:this.cls==='worker'?1:0.5; }
+        get reward() { return this.cls==='exec'?20:this.cls==='worker'?10:5+droneBonus(); }
+        get waitTime() { return gameTime-this.spawnTime; }
+      }
+
+      class Elevator {
+        constructor(idx) {
+          this.idx=idx; this.floor=0; this.queue=[]; this.state='idle'; this.pass=[];
+          this.doorTimer=0; this.dir=0; this.handlers={};
+        }
+        get maxCap() { return getCapacity(); }
+        loadWeight() { return this.pass.reduce((s,p)=>s+p.weight,0); }
+        canBoard(p) { return this.loadWeight()+p.weight <= this.maxCap; }
+        on(ev,cb) { if(!this.handlers[ev]) this.handlers[ev]=[]; this.handlers[ev].push(cb); }
+        trigger(ev,data) { (this.handlers[ev]||[]).forEach(cb=>{try{cb(data)}catch(e){}}); }
+        goToFloor(f) {
+          f=Math.max(0,Math.min(TOTAL_FLOORS-1,Math.floor(f)));
+          if(!this.queue.includes(f)) this.queue.push(f);
+          if(this.state==='idle') this.processQueue();
+        }
+        stop() { this.queue=[]; this.state='idle'; this.dir=0; this.trigger('idle'); }
+        processQueue() {
+          if(this.queue.length===0) { this.state='idle'; this.trigger('idle'); return; }
+          let target=this.queue.shift();
+          if(Math.abs(target-this.floor)<0.01) { this.arrive(); }
+          else { this.dir=target>this.floor?1:-1; this.state=this.dir>0?'moving_up':'moving_down'; }
+        }
+        arrive() {
+          this.floor=Math.round(this.floor); this.state='doors_open'; this.doorTimer=getDoor();
+          this.trigger('stopped_at_floor',this.floor);
+        }
+        update(dt) {
+          if(this.state==='doors_open'||this.state==='doors_close') {
+            this.doorTimer-=dt;
+            if(this.doorTimer<=0) {
+              if(this.state==='doors_open') { this.loadUnload(); this.state='doors_close'; this.doorTimer=getDoor(); }
+              else { this.state='idle'; this.trigger('idle'); this.processQueue(); }
+            }
+            return;
+          }
+          if(this.state==='moving_up'||this.state==='moving_down') {
+            let move = (1/getSpeed())*dt*this.dir;
+            let prev=Math.floor(this.floor);
+            this.floor=Math.max(0,Math.min(TOTAL_FLOORS-1,this.floor+move));
+            let now=Math.floor(this.floor);
+            if(now!==prev) this.trigger('passing_floor',{floor:now,dir:this.dir});
+            if(this.queue.length>0 && (this.dir>0?this.floor>=this.queue[0]:this.floor<=this.queue[0])) {
+              this.floor=this.queue[0]; this.queue.shift(); this.arrive();
+            }
+          }
+        }
+        loadUnload() {
+          let f=Math.round(this.floor);
+          let waiting = allPassengers.filter(p=>p.spawn===f);
+          // board
+          for(let p of [...waiting]) {
+            if(this.canBoard(p)) {
+              this.pass.push(p); allPassengers=allPassengers.filter(x=>x!==p);
+              this.trigger('floor_button_pressed',p.dest);
+              if(!this.queue.includes(p.dest)) this.queue.push(p.dest);
+            }
+          }
+          // unload
+          this.pass=this.pass.filter(p=>{
+            if(p.dest===f) { deliver(p); return false; }
+            return true;
+          });
+        }
+      }
+
+      class Floor { constructor(lvl){this.level=lvl; this.handlers={};}
+        waitingPassengers(){return allPassengers.filter(p=>p.spawn===this.level);}
+        on(ev,cb){ if(!this.handlers[ev])this.handlers[ev]=[]; this.handlers[ev].push(cb); }
+        trigger(ev){ (this.handlers[ev]||[]).forEach(cb=>cb()); }
+      }
 </body>
 </html>
