@@ -165,18 +165,18 @@
     }
     .wait-indicator {
       position: absolute;
-      bottom: 20px; left: 60px; right: 80px;
-      height: 48px;
+      bottom: 8px; left: 50px; right: 80px;
+      height: 80px;
       z-index: 3;
     }
     .wait-dot {
-      width: 32px;
-      height: 48px;
+      width: 54px;
+      height: 80px;
       position: absolute;
       background-size: contain;
       background-repeat: no-repeat;
       background-position: bottom;
-      filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+      filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
       animation: walk-anim linear infinite alternate;
     }
     .wait-dot.exec { background-image: url('assets/exec.png'); }
@@ -185,27 +185,27 @@
 
     @keyframes walk-anim {
       from { transform: translateX(0); }
-      to { transform: translateX(50px); }
+      to { transform: translateX(60px); }
     }
 
     .call-btn {
-      background: rgba(0,0,0,0.7);
-      border: 1px solid var(--accent);
+      background: rgba(0,0,0,0.8);
+      border: 2px solid var(--accent);
       color: var(--accent);
       font-family: var(--font-display);
-      font-size: 0.6rem;
-      padding: 6px 12px;
-      border-radius: 4px;
+      font-size: 0.8rem;
+      padding: 10px 20px;
+      border-radius: 6px;
       cursor: pointer;
       position: absolute;
-      right: 10px; bottom: 10px;
+      right: 15px; bottom: 15px;
       z-index: 10;
       transition: all 0.2s;
     }
     .call-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      box-shadow: 0 0 8px var(--accent-glow);
+      background: var(--accent);
+      color: black;
+      box-shadow: 0 0 20px var(--accent-glow);
     }
     .call-btn.called {
       border-color: var(--warning);
@@ -741,9 +741,9 @@ function update(dt, elevators, floors) { }</textarea>
         for(let i=TOTAL_FLOORS-1;i>=0;i--) {
           let waiting=allPassengers.filter(p=>p.spawn===i);
           let row=document.createElement('div'); row.className='floor-entry';
-          row.innerHTML=`<span class="floor-num">${i}</span><div class="wait-indicator">${waiting.map((p,idx)=>`<span class="wait-dot ${p.cls}" style="left:${idx*25}px; animation-delay:${idx*-1.5}s; animation-duration:${8+Math.random()*4}s;"></span>`).join('')}</div>`;
+          row.innerHTML=`<span class="floor-num">${i}</span><div class="wait-indicator">${waiting.map((p,idx)=>`<span class="wait-dot ${p.cls}" style="left:${idx*40}px; animation-delay:${idx*-2}s; animation-duration:${10+Math.random()*5}s;"></span>`).join('')}</div>`;
           let btn=document.createElement('button'); btn.className='call-btn'; btn.textContent='CALL';
-          btn.onclick=(e)=>{ e.stopPropagation(); callElevator(i); btn.classList.add('called'); setTimeout(()=>btn.classList.remove('called'),1500); };
+          btn.onclick=(e)=>{ e.stopPropagation(); callElevator(i); btn.classList.add('called'); setTimeout(()=>btn.classList.remove('called'),1000); };
           row.appendChild(btn);
           row.onclick=()=>callElevator(i);
           floorPanel.appendChild(row);
