@@ -176,15 +176,26 @@
             position: absolute;
             right: 20px;
             top: 100px;
+            bottom: 20px;
             display: flex;
             flex-direction: column-reverse;
             gap: 5px;
             pointer-events: auto;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .floor-indicator::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .floor-indicator::-webkit-scrollbar-thumb {
+            background: var(--primary);
         }
 
         .floor-btn {
             width: 45px;
-            height: 45px;
+            min-height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -838,10 +849,11 @@
             resize();
 
             function loop() {
-                world.update();
+                const dt = (1/60) * CONFIG.SIM_SPEED;
+                world.update(dt);
                 if (world.userUpdate) {
                     try {
-                        world.userUpdate(1/60, world.elevators, world.floors);
+                        world.userUpdate(dt, world.elevators, world.floors);
                     } catch(e) {}
                 }
                 world.draw();
