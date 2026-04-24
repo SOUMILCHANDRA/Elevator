@@ -487,7 +487,8 @@
 
             get currentFloor() { return this._currentFloor; }
             maxPassengers() { return this.capacity; }
-            loadFactor() { return this.passengers.length / this.capacity; }
+            currentWeight() { return this.passengers.reduce((sum, p) => sum + p.weight, 0); }
+            loadFactor() { return this.currentWeight() / this.capacity; }
             
             goToFloor(floorNum) {
                 if (!this.destinationQueue.includes(floorNum)) { this.destinationQueue.push(floorNum); }
@@ -528,14 +529,19 @@
                     if (this.doorOpen >= 1) {
                         this.doorOpen = 1;
                         this.state = 'open';
-                        this.timer = 1.0; 
+                        this.timer = 1.0; // minimum open time
+                        this.boardingTimer = 0;
                         this.emit('floor_reached', this._currentFloor);
                     }
                 }
 
                 if (this.state === 'open') {
-                    this.timer -= dt;
-                    if (this.timer <= 0) { this.state = 'closing'; }
+                    if (this.boardingTimer > 0) {
+                        this.boardingTimer -= dt;
+                    } else {
+                        this.timer -= dt;
+                        if (this.timer <= 0) { this.state = 'closing'; }
+                    }
                 }
 
                 if (this.state === 'closing') {
@@ -584,7 +590,8 @@
         }
 
         class Person {
-            constructor(startFloor, targetFloor) {
+            constructor(type, startFloor, targetFloor) {
+                this.type = type; // 'EXEC', 'WORKER', 'DRONE'
                 this.startFloor = startFloor;
                 this.targetFloor = targetFloor;
                 this.state = 'waiting'; 
@@ -592,18 +599,69 @@
                 this.waitTimer = 0;
                 this.elevator = null;
                 this.id = Math.random().toString(36).substr(2, 9);
-                if (startFloor < 10) { this.tier = 'DRONE'; this.color = '#39ff14'; }
-                else if (startFloor < 25) { this.tier = 'WORKER'; this.color = '#00f0ff'; }
-                else { this.tier = 'EXEC'; this.color = '#ff00c8'; }
+                
+                switch(type) {
+                    case 'EXEC':
+                        this.color = '#ff00c8';
+                        this.weight = 2;
+                        this.maxWait = 15;
+                        this.reward = 20;
+                        this.penalty = 50;
+                        this.tier = 'EXEC';
+                        break;
+                    case 'WORKER':
+                        this.color = '#00f0ff';
+                        this.weight = 1;
+                        this.maxWait = 30;
+                        this.reward = 10;
+                        this.penalty = 20;
+                        this.tier = 'WORKER';
+                        break;
+                    case 'DRONE':
+                        this.color = '#39ff14';
+                        this.weight = 0.5;
+                        this.maxWait = 60;
+                        this.reward = 5;
+                        this.penalty = 5;
+                        this.tier = 'DRONE';
+                        break;
+                }
             }
-            update(dt) { if (this.state === 'waiting') { this.waitTimer += dt; } }
+
+            update(dt) {
+                if (this.state === 'waiting') {
+                    this.waitTimer += dt;
+                }
+            }
+
             draw(ctx, worldY) {
                 if (this.state === 'inside') return;
                 const y = ctx.canvas.height - (this.startFloor * CONFIG.FLOOR_HEIGHT + 15) + worldY;
+                
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = this.color;
                 ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, y, 5, 0, Math.PI * 2); ctx.fill();
+                
+                if (this.type === 'EXEC') {
+                    // Sharp glossy diamond/avatar
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, y - 8);
+                    ctx.lineTo(this.x + 6, y);
+                    ctx.lineTo(this.x, y + 8);
+                    ctx.lineTo(this.x - 6, y);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (this.type === 'WORKER') {
+                    // Modest uniform avatar
+                    ctx.fillRect(this.x - 4, y - 6, 8, 12);
+                } else {
+                    // Small drone avatar
+                    ctx.beginPath();
+                    ctx.arc(this.x, y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillRect(this.x - 6, y - 1, 12, 2); // drone arms
+                }
+                
                 ctx.shadowBlur = 0;
             }
         }
@@ -757,24 +815,44 @@
                         `;
                     }
                 });
+
                 let maxWait = 0;
                 this.people.forEach(p => {
                     p.update(dt);
                     if (p.state === 'waiting') {
-                        maxWait = Math.max(maxWait, p.waitTimer);
-                        const elevator = this.elevators.find(e => e.currentFloor === p.startFloor && e.state === 'open' && e.passengers.length < e.capacity);
-                        if (elevator) {
-                            p.state = 'inside';
-                            p.elevator = elevator;
-                            elevator.passengers.push(p);
-                            elevator.emit('floor_button_pressed', p.targetFloor);
-                            if (this.mode === 'manual') elevator.goToFloor(p.targetFloor);
+                        if (p.waitTimer > p.maxWait) {
+                            p.state = 'done';
+                            this.credits -= p.penalty;
+                            playSound(220, 'sawtooth', 0.5, 0.1);
+                        } else {
+                            maxWait = Math.max(maxWait, p.waitTimer);
+                            const elevator = this.elevators.find(e => {
+                                if (e.currentFloor !== p.startFloor || e.state !== 'open' || e.boardingTimer > 0) return false;
+                                if (e.currentWeight() + p.weight > e.capacity) return false;
+                                // Direction sensitive boarding
+                                if (e.direction === 0) return true;
+                                const pDir = p.targetFloor > p.startFloor ? 1 : -1;
+                                return pDir === e.direction;
+                            });
+                            if (elevator) {
+                                p.state = 'inside';
+                                p.elevator = elevator;
+                                elevator.passengers.push(p);
+                                elevator.boardingTimer = 0.5; // 0.5s real time boarding
+                                elevator.emit('floor_button_pressed', p.targetFloor);
+                                if (this.mode === 'manual') elevator.goToFloor(p.targetFloor);
+                            }
                         }
                     }
                     if (p.state === 'inside' && p.elevator.currentFloor === p.targetFloor && p.elevator.state === 'open') {
                         p.state = 'done';
                         this.transported++;
-                        this.credits += (p.tier === 'EXEC' ? 50 : (p.tier === 'WORKER' ? 20 : 10));
+                        let reward = p.reward;
+                        if (p.type === 'EXEC') {
+                            const speedBonus = Math.max(0, Math.floor((p.maxWait - p.waitTimer) * 2));
+                            reward += speedBonus;
+                        }
+                        this.credits += reward;
                         p.elevator.passengers = p.elevator.passengers.filter(pass => pass !== p);
                     }
                 });
@@ -821,10 +899,28 @@
             }
 
             spawnPerson() {
-                const start = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
-                let target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
-                while (target === start) target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
-                const p = new Person(start, target);
+                const rand = Math.random();
+                let type, start, target;
+
+                if (rand < 0.15) { // 15% EXECUTIVES
+                    type = 'EXEC';
+                    start = Math.random() < 0.5 ? Math.floor(Math.random() * 6) : 25 + Math.floor(Math.random() * 5);
+                    target = Math.random() < 0.8 ? 20 + Math.floor(Math.random() * 10) : Math.floor(Math.random() * 6);
+                    while (target === start) target = Math.floor(Math.random() * 6);
+                } else if (rand < 0.5) { // 35% WORKERS
+                    type = 'WORKER';
+                    start = 6 + Math.floor(Math.random() * 14);
+                    target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
+                    while (target === start) target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
+                } else { // 50% DRONES
+                    type = 'DRONE';
+                    start = Math.floor(Math.random() * 25);
+                    // heavily skewed to lower half
+                    target = Math.floor(Math.pow(Math.random(), 2) * CONFIG.MAX_FLOORS);
+                    while (target === start) target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
+                }
+
+                const p = new Person(type, start, target);
                 this.people.push(p);
                 this.floors[start].people.push(p);
                 this.floors[start].emit(target > start ? 'up_button_pressed' : 'down_button_pressed');
