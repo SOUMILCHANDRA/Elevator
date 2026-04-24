@@ -405,30 +405,37 @@
                 this.id = id;
                 this.x = x;
                 this.y = 0;
-                this.currentFloor = 0;
-                this.targetFloor = null;
+                this._currentFloor = 0;
                 this.state = 'idle'; 
                 this.doorOpen = 0; 
                 this.passengers = [];
                 this.capacity = 6;
-                this.queue = [];
+                this.destinationQueue = [];
                 this.direction = 0; 
-                this.maxSpeed = 10;
-                this.accel = 0.3;
-                this.currentSpeed = 0;
+                this.timer = 0;
             }
 
-            goToFloor(floorIndex) {
-                if (!this.queue.includes(floorIndex)) {
-                    this.queue.push(floorIndex);
+            get currentFloor() { return this._currentFloor; }
+            maxPassengers() { return this.capacity; }
+            loadFactor() { return this.passengers.length / this.capacity; }
+            
+            goToFloor(floorNum) {
+                if (!this.destinationQueue.includes(floorNum)) {
+                    this.destinationQueue.push(floorNum);
                 }
             }
 
+            stop() {
+                this.destinationQueue = [];
+                this.state = 'idle';
+                this.direction = 0;
+            }
+
             update(dt) {
-                if (this.state === 'idle' && this.queue.length > 0) {
-                    this.targetFloor = this.queue.shift();
+                if (this.state === 'idle' && this.destinationQueue.length > 0) {
+                    this.targetFloor = this.destinationQueue.shift();
                     this.state = 'moving';
-                    this.direction = this.targetFloor > this.currentFloor ? 1 : -1;
+                    this.direction = this.targetFloor > this._currentFloor ? 1 : -1;
                 }
 
                 if (this.state === 'moving') {
@@ -436,13 +443,19 @@
                     const dy = targetY - this.y;
                     const moveStep = CONFIG.SPEED * CONFIG.FLOOR_HEIGHT * dt;
                     
+                    // Passing floor event
+                    const oldFloor = Math.round(this.y / CONFIG.FLOOR_HEIGHT);
+                    this.y += Math.sign(dy) * moveStep;
+                    const newFloor = Math.round(this.y / CONFIG.FLOOR_HEIGHT);
+                    if (oldFloor !== newFloor) {
+                        this.emit('passing_floor', newFloor, this.direction);
+                    }
+
                     if (Math.abs(dy) <= Math.abs(moveStep)) {
                         this.y = targetY;
-                        this.currentFloor = this.targetFloor;
+                        this._currentFloor = this.targetFloor;
                         this.state = 'opening';
-                        this.emit('stopped', this.currentFloor);
-                    } else {
-                        this.y += Math.sign(dy) * moveStep;
+                        this.emit('stopped_at_floor', this._currentFloor);
                     }
                 }
 
@@ -452,7 +465,7 @@
                         this.doorOpen = 1;
                         this.state = 'open';
                         this.timer = 1.0; 
-                        this.emit('floor_reached', this.currentFloor);
+                        this.emit('floor_reached', this._currentFloor);
                     }
                 }
 
@@ -476,54 +489,40 @@
             draw(ctx, worldY) {
                 const screenY = ctx.canvas.height - (this.y + CONFIG.ELEVATOR_HEIGHT) + worldY;
                 
-                // Glowing Vertical Beam Shaft
+                // Shaft
                 const beamGrad = ctx.createLinearGradient(this.x, 0, this.x + CONFIG.ELEVATOR_WIDTH, 0);
                 beamGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
-                beamGrad.addColorStop(0.5, 'rgba(0, 240, 255, 0.15)');
+                beamGrad.addColorStop(0.5, 'rgba(0, 240, 255, 0.1)');
                 beamGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
                 ctx.fillStyle = beamGrad;
                 ctx.fillRect(this.x, 0, CONFIG.ELEVATOR_WIDTH, ctx.canvas.height);
 
-                // Beam Edges
-                ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(this.x, 0); ctx.lineTo(this.x, ctx.canvas.height);
-                ctx.moveTo(this.x + CONFIG.ELEVATOR_WIDTH, 0); ctx.lineTo(this.x + CONFIG.ELEVATOR_WIDTH, ctx.canvas.height);
-                ctx.stroke();
-
                 // Car
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 15;
                 ctx.shadowColor = this.state === 'moving' ? '#00f0ff' : 'transparent';
                 ctx.fillStyle = '#1a1a1a';
                 ctx.fillRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
-                
                 ctx.strokeStyle = this.state === 'moving' ? '#00f0ff' : '#333';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
                 ctx.shadowBlur = 0;
-
-                // Interior Detail
-                ctx.fillStyle = 'rgba(0, 240, 255, 0.05)';
-                ctx.fillRect(this.x + 4, screenY + 4, CONFIG.ELEVATOR_WIDTH - 8, CONFIG.ELEVATOR_HEIGHT - 8);
 
                 // Doors
                 const doorW = (CONFIG.ELEVATOR_WIDTH / 2) * (1 - this.doorOpen);
                 ctx.fillStyle = '#0a0a0a';
                 ctx.fillRect(this.x, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
                 ctx.fillRect(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
-                
-                // Door Outlines
                 ctx.strokeStyle = '#00f0ff';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(this.x, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
                 ctx.strokeRect(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
 
-                // HUD Text
+                // HUD
                 ctx.fillStyle = '#00f0ff';
                 ctx.font = 'bold 10px JetBrains Mono';
                 ctx.textAlign = 'center';
-                ctx.fillText(`LVL_${Math.round(this.y / CONFIG.FLOOR_HEIGHT)}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + 15);
+                ctx.fillText(`LVL_${this._currentFloor}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + 15);
+                ctx.fillText(`${this.passengers.length}/${this.capacity}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + CONFIG.ELEVATOR_HEIGHT - 5);
             }
         }
 
@@ -537,22 +536,20 @@
                 this.elevator = null;
                 this.id = Math.random().toString(36).substr(2, 9);
                 
-                // Class-based coloring
-                if (startFloor < 4) this.color = '#39ff14'; // Drone
-                else if (startFloor < 8) this.color = '#00f0ff'; // Worker
-                else this.color = '#ff00c8'; // Executive
+                if (startFloor < 10) { this.tier = 'DRONE'; this.color = '#39ff14'; }
+                else if (startFloor < 25) { this.tier = 'WORKER'; this.color = '#00f0ff'; }
+                else { this.tier = 'EXEC'; this.color = '#ff00c8'; }
             }
 
-            update() {
+            update(dt) {
                 if (this.state === 'waiting') {
-                    this.waitTimer += 1/60;
+                    this.waitTimer += dt;
                 }
             }
 
             draw(ctx, worldY) {
                 if (this.state === 'inside') return;
                 const y = ctx.canvas.height - (this.startFloor * CONFIG.FLOOR_HEIGHT + 15) + worldY;
-                
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = this.color;
                 ctx.fillStyle = this.color;
@@ -560,15 +557,23 @@
                 ctx.arc(this.x, y, 5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
+            }
+        }
 
-                // Wait Warning
-                if (this.waitTimer > 15) {
-                    ctx.strokeStyle = '#ff0000';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(this.x, y, 8, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
+        class Floor extends EventEmitter {
+            constructor(level) {
+                super();
+                this.level = level;
+                this.tier = level < 10 ? 'DRONE_ZONE' : (level < 25 ? 'WORKER_HUB' : 'EXEC_SUITE');
+                this.people = [];
+            }
+            floorNum() { return this.level; }
+            waitingPassengers() {
+                return this.people.filter(p => p.state === 'waiting').map(p => ({
+                    destinationFloor: p.targetFloor,
+                    class: p.tier,
+                    timeWaiting: p.waitTimer
+                }));
             }
         }
 
