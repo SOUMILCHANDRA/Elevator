@@ -485,6 +485,13 @@ function update(dt, elevators, floors) { }</textarea>
       <button class="btn primary" id="restart-btn">RESTART</button>
     </div>
   </div>
+
+  <!-- Boot Overlay -->
+  <div class="modal" id="boot-overlay">
+    <div class="modal-content" style="text-align:left; font-family:var(--font-mono); font-size:0.7rem; color:var(--drone);">
+      <div id="boot-log">> INITIALIZING SUBNET_LIFT_OS...</div>
+    </div>
+  </div>
   <script>
     // ──────────────────────────────────
     // CORE GAME ENGINE (identical logic, improved UI bindings)
