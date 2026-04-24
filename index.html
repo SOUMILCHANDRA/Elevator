@@ -332,6 +332,131 @@
             100% { text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent); }
         }
 
+        #top-bar {
+            height: 60px;
+            background: #000;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            position: relative;
+            z-index: 100;
+        }
+
+        #main-layout {
+            display: flex;
+            height: calc(100vh - 60px);
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        #floor-column {
+            width: 20%;
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.5);
+        }
+
+        #shaft-column {
+            width: 60%;
+            position: relative;
+            background: radial-gradient(circle at center, #111, #000);
+        }
+
+        #hud-column {
+            width: 20%;
+            border-left: 1px solid var(--glass-border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0,0,0,0.8);
+        }
+
+        .floor-row {
+            height: 120px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            position: relative;
+            transition: background 0.3s;
+        }
+
+        .floor-row:hover { background: rgba(0, 240, 255, 0.05); }
+
+        .floor-num {
+            font-size: 24px;
+            font-weight: 900;
+            color: #333;
+            width: 40px;
+        }
+
+        .floor-row.active .floor-num { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+
+        .waiting-dots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-left: 15px;
+            max-width: 100px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            box-shadow: 0 0 5px currentColor;
+        }
+
+        .hud-panel-v2 {
+            background: var(--glass);
+            padding: 15px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .speed-toggles {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 5px;
+            background: #111;
+            border: 1px solid #333;
+            color: #555;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .btn-small.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(255, 0, 200, 0.1);
+        }
+
+        #resolution-warning {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #0d0d0d;
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 1023px) {
+            #resolution-warning { display: flex; }
+            #main-layout, #top-bar { display: none; }
+        }
+
         #shop-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -386,109 +511,70 @@
     </style>
 </head>
 <body>
-    <div id="mode-selection" style="display: none;">
-        <h1 class="glitch-text" style="font-size: 48px;">SELECT_INTERFACE</h1>
-        <div style="display: flex; gap: 40px;">
-            <div class="mode-card" onclick="selectMode('manual')">
-                <h3>MANUAL_CONTROL</h3>
-                <p>Direct intervention. Optimize the vertical flow through strategic dispatch and manual overrides.</p>
-            </div>
-            <div class="mode-card" onclick="selectMode('coding')">
-                <h3>LOGISTICS_CODING</h3>
-                <p>Programmatic optimization. Inject JavaScript protocols to automate the mega-tower's infrastructure.</p>
-            </div>
+    <div id="resolution-warning">
+        <h1 class="glitch-text" style="font-size: 24px;">RESOLUTION_BREACH</h1>
+        <p>System UI requires minimum 1024px width for operational stability.</p>
+    </div>
+
+    <div id="top-bar">
+        <h1 class="glitch-text" style="font-size: 24px; margin: 0; letter-spacing: 10px;">SUBNET LIFT</h1>
+        <div id="global-stats" style="display: flex; gap: 30px; font-size: 12px; color: var(--primary);">
+            <div>STATUS: <span style="color: #39ff14;">OPTIMAL</span></div>
+            <div id="clock-display">TIME: 00:00</div>
         </div>
     </div>
 
-    <div id="start-screen">
-        <h1 class="glitch-text">SUBNET LIFT</h1>
-        <h2 style="font-size: 18px; color: var(--accent); margin-bottom: 30px; letter-spacing: 4px;">VERTICAL ORDER</h2>
-        <p style="margin-bottom: 40px; max-width: 600px; line-height: 1.8; color: #888; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
-            <span style="color: var(--primary)">> SYSTEM_ID: MEGA-TOWER_01</span><br>
-            The tower is divided. DRONES in the slums, WORKERS in the hub, EXECUTIVES in the penthouse.
-            Maintain the vertical flow. Corporate compliance is your only lifeline.
-        </p>
-        <button class="btn" onclick="showModeSelection()">INITIALIZE_UPLINK</button>
-    </div>
+    <div id="main-layout">
+        <div id="floor-column">
+            <!-- Floor strip 29 down to 0 -->
+            <div id="floor-list-container"></div>
+        </div>
 
-    <div id="game-container">
-        <canvas id="render-canvas"></canvas>
-        
-        <div id="ui-overlay">
-            <div id="stats-panel" class="hud-panel">
-                <div>
-                    <span class="label">CORPORATE COMPLIANCE</span>
-                    <div id="compliance-value" class="value">100%</div>
+        <div id="shaft-column">
+            <canvas id="render-canvas"></canvas>
+        </div>
+
+        <div id="hud-column">
+            <div id="hud-content">
+                <div class="hud-panel-v2">
+                    <span class="label">CORPORATE_COMPLIANCE</span>
+                    <div id="compliance-value" class="value" style="font-size: 24px;">100%</div>
+                    <div id="credits-value" class="value" style="color: var(--accent); font-size: 18px;">0 CR</div>
                 </div>
-                <div style="margin-top: 15px;">
-                    <span class="label">CREDITS</span>
-                    <div id="credits-value" class="value" style="color: var(--accent);">0</div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <span class="label">SYSTEM LOAD</span>
-                    <div id="load-value" class="value">0%</div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <span class="label">STREAK</span>
-                    <div id="streak-value" class="value" style="color: var(--secondary);">1.0x</div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <span class="label">AVG WAIT</span>
+
+                <div class="hud-panel-v2" style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <div><span class="label">STREAK</span><div id="streak-value" class="value">1.0x</div></div>
+                        <div><span class="label">LOAD</span><div id="load-value" class="value">0%</div></div>
+                    </div>
+                    <span class="label">AVG_WAIT</span>
                     <div id="avg-wait-value" class="value">0s</div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <span class="label">HIGH SCORE</span>
+                    <span class="label" style="margin-top: 10px; display: block;">HIGH_SCORE</span>
                     <div id="high-score-value" class="value" style="color: var(--accent);">0</div>
                 </div>
-            </div>
 
-            <div id="shop-panel" class="hud-panel" style="left: 20px; top: 220px; width: 250px; border-left: 4px solid var(--accent);">
-                <span class="label">INFRASTRUCTURE_TERMINAL</span>
-                <button class="btn btn-secondary" style="width: 100%; font-size: 12px;" onclick="world.toggleShop(true)">OPEN SHOP</button>
-                <button class="btn" style="width: 100%; font-size: 10px; margin-top: 10px;" onclick="world.dispatchAll()">OPTIMIZE ALL</button>
-            </div>
-
-            <div id="manual-ui">
-                <!-- Elevator controls will be generated here -->
-            </div>
-
-            <div id="mode-toggle" class="hud-panel" style="top: 20px; right: 20px;">
-                <button id="btn-manual" class="btn active">Manual Mode</button>
-                <button id="btn-coding" class="btn btn-secondary">Logic Mode</button>
-            </div>
-
-            <div id="floor-list" class="floor-indicator">
-                <!-- Floors will be generated here -->
-            </div>
-
-            <div id="control-panel" class="hud-panel" style="bottom: 20px; left: 20px; right: 20px; height: 250px; display: flex; transform: translateY(300px);">
-                <div id="editor-container">
-                    <div style="padding: 5px 15px; background: #111; font-size: 10px; color: #555; border-bottom: 1px solid #333;">
-                        OPTIMIZER_SCRIPT.JS
+                <div class="hud-panel-v2" style="margin-top: 20px;">
+                    <span class="label">SIMULATION_CLOCK</span>
+                    <div class="speed-toggles">
+                        <button onclick="world.setSimSpeed(1)" id="speed-1" class="btn-small active">1X</button>
+                        <button onclick="world.setSimSpeed(5)" id="speed-5" class="btn-small">5X</button>
+                        <button onclick="world.setSimSpeed(10)" id="speed-10" class="btn-small">10X</button>
                     </div>
-                    <textarea id="code-editor" spellcheck="false">{
-    init: function(elevators, floors) {
-        elevators.forEach(elevator => {
-            elevator.on("idle", () => { elevator.goToFloor(0); });
-        });
+                </div>
 
-        floors.forEach((floor, index) => {
-            floor.on("button_pressed", () => {
-                let nearest = elevators[0];
-                let minDist = Infinity;
-                elevators.forEach(e => {
-                    let d = Math.abs(e.currentFloor - index);
-                    if (d < minDist) { minDist = d; nearest = e; }
-                });
-                nearest.goToFloor(index);
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {}
-}</textarea>
-                    <div style="padding: 10px; display: flex; justify-content: flex-end; gap: 10px;">
-                        <button id="btn-apply" class="btn">Apply Script</button>
-                    </div>
+                <div class="hud-panel-v2" style="margin-top: 20px;">
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="world.toggleShop(true)">INFRASTRUCTURE_SHOP</button>
+                    <button class="btn" style="width: 100%; margin-top: 10px;" id="mode-switch-btn" onclick="world.confirmModeSwitch()">SWITCH_TO_LOGIC</button>
+                </div>
+
+                <div id="coding-panel" style="display: none; flex-direction: column; flex-grow: 1; margin-top: 20px; overflow: hidden;">
+                    <span class="label">OPTIMIZER_PROTOCOL</span>
+                    <textarea id="code-editor" spellcheck="false" style="flex-grow: 1; min-height: 300px;">// Protocol injected...</textarea>
+                    <button id="btn-apply" class="btn" style="margin-top: 10px;">EXECUTE_PROTOCOL</button>
+                </div>
+                
+                <div id="manual-controls" style="margin-top: 20px;">
+                    <!-- Manual controls generated here -->
                 </div>
             </div>
         </div>
@@ -849,37 +935,55 @@
             }
 
             initUI() {
-                const floorList = document.getElementById('floor-list');
-                floorList.innerHTML = '';
-                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
-                    const btn = document.createElement('div');
-                    btn.className = 'floor-btn';
-                    btn.id = `floor-btn-${i}`;
-                    btn.innerText = i;
-                    btn.onclick = () => this.callElevator(i);
-                    floorList.appendChild(btn);
+                const container = document.getElementById('floor-list-container');
+                container.innerHTML = '';
+                for (let i = CONFIG.MAX_FLOORS - 1; i >= 0; i--) {
+                    const row = document.createElement('div');
+                    row.className = 'floor-row';
+                    row.id = `floor-row-${i}`;
+                    row.innerHTML = `
+                        <div class="floor-num">${i}</div>
+                        <div class="waiting-dots" id="waiting-dots-${i}"></div>
+                        <button class="btn-small" style="position: absolute; right: 10px;" onclick="world.callElevator(${i})">CALL</button>
+                    `;
+                    container.appendChild(row);
                 }
-                document.getElementById('btn-manual').onclick = () => this.setMode('manual');
-                document.getElementById('btn-coding').onclick = () => this.setMode('coding');
+
+                this.updateModeUI();
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
                 document.getElementById('btn-apply').onclick = () => this.applyScript();
-                const manualUI = document.getElementById('manual-ui');
-                manualUI.innerHTML = '';
-                this.elevators.forEach(e => {
-                    const ctrl = document.createElement('div');
-                    ctrl.className = 'elevator-control';
-                    ctrl.id = `elevator-ctrl-${e.id}`;
-                    manualUI.appendChild(ctrl);
-                });
             }
 
-            setMode(mode) {
-                this.mode = mode;
-                document.getElementById('btn-manual').classList.toggle('active', mode === 'manual');
-                document.getElementById('btn-coding').classList.toggle('active', mode === 'coding');
-                document.getElementById('control-panel').style.transform = mode === 'coding' ? 'translateY(0)' : 'translateY(300px)';
-                document.getElementById('manual-ui').style.display = mode === 'manual' ? 'flex' : 'none';
-                document.getElementById('shop-panel').style.display = mode === 'manual' ? 'flex' : 'none';
+            resize() {
+                const col = document.getElementById('shaft-column');
+                this.canvas.width = col.clientWidth;
+                this.canvas.height = col.clientHeight;
             }
+
+            setSimSpeed(speed) {
+                CONFIG.SIM_SPEED = speed;
+                document.querySelectorAll('.speed-toggles button').forEach(b => b.classList.remove('active'));
+                document.getElementById(`speed-${speed}`).classList.add('active');
+            }
+
+            confirmModeSwitch() {
+                const target = this.mode === 'manual' ? 'coding' : 'manual';
+                if (confirm(`SWITCH TO ${target.toUpperCase()} MODE?`)) {
+                    this.mode = target;
+                    localStorage.setItem('subnet_lift_mode', target);
+                    this.updateModeUI();
+                }
+            }
+
+            updateModeUI() {
+                const isCoding = this.mode === 'coding';
+                document.getElementById('coding-panel').style.display = isCoding ? 'flex' : 'none';
+                document.getElementById('manual-controls').style.display = isCoding ? 'none' : 'block';
+                document.getElementById('mode-switch-btn').innerText = isCoding ? 'SWITCH_TO_MANUAL' : 'SWITCH_TO_LOGIC';
+            }
+
+            // Legacy setMode replaced by updateModeUI
 
             applyUpgrades() {
                 const speedValues = [1.0, 0.6, 0.4, 0.25, 0.15];
@@ -1150,29 +1254,80 @@
             }
 
             draw() {
-                this.ctx.fillStyle = '#0d0d0d';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
-                    const y = this.canvas.height - (i * CONFIG.FLOOR_HEIGHT) + this.worldY;
-                    const floor = this.floors[i];
-                    this.ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.beginPath(); this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y); this.ctx.stroke();
-                    const pulseScale = 1 + Math.sin(this.pulse) * 0.3;
-                    const nodeColor = floor.tier === 'DRONE_ZONE' ? '#39ff14' : (floor.tier === 'WORKER_HUB' ? '#00f0ff' : '#ff00c8');
-                    this.ctx.fillStyle = nodeColor;
-                    this.ctx.globalAlpha = 0.2 + Math.sin(this.pulse) * 0.1;
-                    this.ctx.beginPath(); this.ctx.arc(100, y, 4 * pulseScale, 0, Math.PI * 2); this.ctx.fill();
-                    this.ctx.globalAlpha = 1.0;
-                    this.ctx.fillStyle = nodeColor;
-                    this.ctx.font = 'bold 10px JetBrains Mono'; this.ctx.textAlign = 'left';
-                    this.ctx.fillText(`${floor.tier}_${i}`, 115, y + 4);
-                }
-                this.elevators.forEach(e => e.draw(this.ctx, this.worldY));
-                this.people.forEach(p => p.draw(this.ctx, this.worldY));
-                const vig = this.ctx.createRadialGradient(this.canvas.width/2, this.canvas.height/2, 0, this.canvas.width/2, this.canvas.height/2, this.canvas.width);
-                vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.6)');
-                this.ctx.fillStyle = vig; this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                const worldY = this.worldY;
+                const startX = (this.canvas.width - (CONFIG.NUM_ELEVATORS * 150)) / 2;
+
+                // Draw Shafts
+                this.elevators.forEach((e, i) => {
+                    const x = startX + i * 150;
+                    ctx.strokeStyle = 'rgba(0, 240, 255, 0.1)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x - 5, 0, CONFIG.ELEVATOR_WIDTH + 10, this.canvas.height);
+                    
+                    // Elevator Box
+                    const ey = this.canvas.height - (e.y + CONFIG.ELEVATOR_HEIGHT) + worldY;
+                    ctx.fillStyle = 'rgba(13, 13, 13, 0.9)';
+                    ctx.strokeStyle = e.state === 'idle' ? 'var(--primary)' : 'var(--accent)';
+                    ctx.lineWidth = 3;
+                    ctx.fillRect(x, ey, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
+                    ctx.strokeRect(x, ey, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
+
+                    // Passengers inside as dots
+                    e.passengers.forEach((p, pi) => {
+                        const px = x + 10 + (pi % 5) * 10;
+                        const py = ey + 10 + Math.floor(pi / 5) * 10;
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(px, py, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    // Elevator Label
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '10px JetBrains Mono';
+                    ctx.fillText(`E${e.id}`, x + 5, ey + CONFIG.ELEVATOR_HEIGHT - 5);
+                    ctx.fillText(e.state.toUpperCase(), x + 5, ey + CONFIG.ELEVATOR_HEIGHT - 15);
+                });
+
+                // Update Floor Column Indicators
+                this.floors.forEach(f => {
+                    const row = document.getElementById(`floor-row-${f.level}`);
+                    if (!row) return;
+                    
+                    const hasElevator = this.elevators.some(e => e.currentFloor === f.level && e.state === 'open');
+                    row.classList.toggle('active', hasElevator);
+
+                    const dotContainer = document.getElementById(`waiting-dots-${f.level}`);
+                    dotContainer.innerHTML = '';
+                    f.people.filter(p => p.state === 'waiting').forEach(p => {
+                        const dot = document.createElement('div');
+                        dot.className = 'dot';
+                        dot.style.color = p.color;
+                        dot.style.backgroundColor = p.color;
+                        dotContainer.appendChild(dot);
+                    });
+                });
+
+                // HUD Stats
+                const minutes = Math.floor(this.time / 60);
+                const seconds = Math.floor(this.time % 60);
+                document.getElementById('clock-display').innerText = `TIME: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                const avgWait = this.transported > 0 ? (this.totalWaitTime / this.transported) : 0;
+                document.getElementById('avg-wait-value').innerText = avgWait.toFixed(1) + "s";
+                
+                const streakDisplay = 1 + (this.streakCount * 0.1);
+                const streakEl = document.getElementById('streak-value');
+                streakEl.innerText = streakDisplay.toFixed(1) + "x";
+                streakEl.style.textShadow = this.streakCount > 0 ? `0 0 10px var(--secondary)` : 'none';
+                
+                const waitingCount = this.people.filter(p => p.state === 'waiting').length;
+                document.getElementById('load-value').innerText = Math.round((waitingCount/CONFIG.LOSS_THRESHOLD)*100) + "%";
+                document.getElementById('credits-value').innerText = this.credits + " CR";
+                document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
             }
 
             endGame() {
@@ -1191,25 +1346,13 @@
         }
 
         let world;
-        function showModeSelection() {
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('mode-selection').style.display = 'flex';
-            if (AudioCtx.state === 'suspended') AudioCtx.resume();
-        }
-
-        function selectMode(mode) {
-            localStorage.setItem('subnet_lift_mode', mode);
-            document.getElementById('mode-selection').style.display = 'none';
-            initGame(mode);
-        }
-
-        function initGame(mode) {
+        window.onload = () => {
             const canvas = document.getElementById('render-canvas');
             world = new World(canvas);
-            world.setMode(mode || localStorage.getItem('subnet_lift_mode') || 'manual');
-            function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-            window.addEventListener('resize', resize);
-            resize();
+            const savedMode = localStorage.getItem('subnet_lift_mode') || 'manual';
+            world.mode = savedMode;
+            world.updateModeUI();
+
             function loop() {
                 const dt = (1/60) * CONFIG.SIM_SPEED;
                 world.update(dt);
@@ -1217,7 +1360,7 @@
                 requestAnimationFrame(loop);
             }
             loop();
-        }
+        };
     </script>
 </body>
 </html>
