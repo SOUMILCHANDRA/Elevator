@@ -610,5 +610,140 @@ function update(dt, elevators, floors) { }</textarea>
         on(ev,cb){ if(!this.handlers[ev])this.handlers[ev]=[]; this.handlers[ev].push(cb); }
         trigger(ev){ (this.handlers[ev]||[]).forEach(cb=>cb()); }
       }
+
+      function deliver(p) {
+        let wait=p.waitTime, half=p.patience/2, pts=p.reward;
+        if(wait<half) pts=Math.floor(pts*1.5);
+        pts-=Math.max(0,Math.floor(wait-half));
+        if(gameTime-lastDelivery<5) streakCount++; else streakCount=1;
+        lastDelivery=gameTime;
+        pts=Math.floor(pts*(1+(streakCount-1)*0.1));
+        score+=pts; credits+=pts; totalDelivered++; totalWait+=wait;
+        floorsData[p.spawn].trigger('button_pressed');
+        updateHUD();
+      }
+
+      function timeout(p) {
+        unserved++;
+        let penalty=p.cls==='exec'?50:p.cls==='worker'?20:5;
+        score=Math.max(0,score-penalty); credits=Math.max(0,credits-Math.floor(penalty/2));
+        updateHUD();
+      }
+
+      function spawnPassenger() {
+        let r=Math.random(), cls, floor, dest;
+        if(r<0.2) { cls='exec'; floor=Math.random()<0.5?25+Math.floor(Math.random()*5):Math.floor(Math.random()*6);
+          dest=Math.random()<0.7?20+Math.floor(Math.random()*10):Math.floor(Math.random()*6); }
+        else if(r<0.55) { cls='worker'; floor=6+Math.floor(Math.random()*14); dest=Math.floor(Math.random()*TOTAL_FLOORS); }
+        else { cls='drone'; floor=Math.floor(Math.random()*25); dest=Math.floor(Math.random()*18); }
+        if(dest===floor) dest=(dest+1)%TOTAL_FLOORS;
+        allPassengers.push(new Passenger(floor,dest,cls));
+        let fd=floorsData[floor];
+        if(dest>floor) fd.trigger('up_button_pressed'); else fd.trigger('down_button_pressed');
+        renderFloors();
+      }
+
+      function initFloors() { floorsData=[]; for(let i=0;i<TOTAL_FLOORS;i++) floorsData.push(new Floor(i)); }
+      function initElevators() {
+        elevators=[]; let n=getTotalElevators();
+        for(let i=0;i<n;i++) { let e=new Elevator(i); e.floor=Math.floor(Math.random()*15); elevators.push(e); }
+        renderShafts();
+      }
+
+      // rendering
+      function renderFloors() {
+        floorPanel.innerHTML='';
+        for(let i=TOTAL_FLOORS-1;i>=0;i--) {
+          let waiting=allPassengers.filter(p=>p.spawn===i);
+          let row=document.createElement('div'); row.className='floor-entry';
+          row.innerHTML=`<span class="floor-num">${i}</span><div class="wait-indicator">${waiting.map(p=>`<span class="wait-dot ${p.cls}"></span>`).join('')}</div>`;
+          let btn=document.createElement('button'); btn.className='call-btn'; btn.textContent='CALL';
+          btn.onclick=(e)=>{ e.stopPropagation(); callElevator(i); btn.classList.add('called'); setTimeout(()=>btn.classList.remove('called'),1500); };
+          row.appendChild(btn);
+          row.onclick=()=>callElevator(i);
+          floorPanel.appendChild(row);
+        }
+      }
+
+      function renderShafts() {
+        shaftArea.querySelectorAll('.shaft').forEach(s=>s.remove());
+        for(let i=0;i<elevators.length;i++) {
+          let shaft=document.createElement('div'); shaft.className='shaft'; shaft.id='shaft-'+i;
+          let car=document.createElement('div'); car.className='elevator-car'; car.id='car-'+i;
+          car.innerHTML=`<span class="car-id">E${i+1}</span><span class="car-stats">0/${getCapacity()}</span>`;
+          car.onclick=()=>{ if(gameMode==='manual'){ let f=prompt(`Elevator ${i+1} target floor?`); if(f!==null) elevators[i].goToFloor(parseInt(f)); }};
+          shaft.appendChild(car);
+          shaftArea.appendChild(shaft);
+        }
+      }
+
+      function updateElevatorsUI() {
+        for(let i=0;i<elevators.length;i++) {
+          let car=document.getElementById('car-'+i); if(!car) continue;
+          let shaft=document.getElementById('shaft-'+i); if(!shaft) continue;
+          let frac=(TOTAL_FLOORS-1-elevators[i].floor)/(TOTAL_FLOORS-1);
+          car.style.top=(frac*(shaft.clientHeight-52))+'px';
+          car.classList.toggle('moving',elevators[i].state.startsWith('moving'));
+          car.classList.toggle('exec-presence',elevators[i].pass.some(p=>p.cls==='exec'));
+          car.querySelector('.car-stats').textContent=elevators[i].loadWeight().toFixed(1)+'/'+getCapacity();
+        }
+      }
+
+      function callElevator(floor) {
+        if(gameMode!=='manual') return;
+        let best=null, bestDist=Infinity;
+        elevators.forEach(e=>{ if(e.state==='idle'){ let d=Math.abs(e.floor-floor); if(d<bestDist){best=e;bestDist=d;} } });
+        if(!best) elevators.forEach(e=>{ let d=Math.abs(e.floor-floor)+e.queue.length*3; if(d<bestDist){best=e;bestDist=d;} });
+        if(best) best.goToFloor(floor);
+      }
+
+      function dispatchAll() {
+        if(gameMode!=='manual') return;
+        let floors=[...new Set(allPassengers.map(p=>p.spawn))].sort((a,b)=>allPassengers.filter(p=>p.spawn===a)[0].spawnTime - allPassengers.filter(p=>p.spawn===b)[0].spawnTime);
+        let idle=elevators.filter(e=>e.state==='idle');
+        for(let i=0;i<Math.min(floors.length,idle.length);i++) idle[i].goToFloor(floors[i]);
+      }
+
+      function updateHUD() {
+        let waiting=allPassengers.length, comp=waiting<=WARN_THRESHOLD?100:Math.max(0,100-(waiting-WARN_THRESHOLD)*3);
+        complianceEl.textContent=Math.round(comp)+'%'; complianceEl.className='hud-value'+(comp<50?' danger-value':'');
+        creditsEl.textContent=credits+' CR';
+        streakEl.textContent=(1+(streakCount-1)*0.1).toFixed(1)+'x';
+        avgWaitEl.textContent=(totalDelivered? (totalWait/totalDelivered).toFixed(1):'0')+'s';
+        unservedEl.textContent=unserved+' / '+MAX_UNSERVED; unservedEl.className='hud-value'+(unserved>=MAX_UNSERVED*0.7?' danger-value':'');
+        highscoreEl.textContent=highScore;
+        if(score>highScore) { highScore=score; localStorage.setItem('subnetHighScore',highScore); }
+      }
+
+      function gameOver() {
+        gameRunning=false;
+        document.getElementById('gameover-msg').textContent=allPassengers.length>=MAX_WAITING?'Load breach!':'Too many unserved.';
+        document.getElementById('final-score').textContent=score;
+        document.getElementById('gameover-modal').classList.remove('hidden');
+      }
+
+      let gameRunning=true, lastFrame=0;
+      function loop(ts) {
+        if(!gameRunning) { lastFrame=ts; requestAnimationFrame(loop); return; }
+        let dt=Math.min(0.2,(ts-lastFrame)/1000)*gameSpeed; lastFrame=ts;
+        gameTime+=dt; difficulty=1+gameTime/60*0.2;
+        let spawnInt=Math.max(0.6,2.5/difficulty);
+        spawnTimer+=dt;
+        while(spawnTimer>=spawnInt && allPassengers.length<MAX_WAITING) { spawnTimer-=spawnInt; spawnPassenger(); }
+        elevators.forEach(e=>e.update(dt));
+        allPassengers.filter(p=>p.waitTime>=p.patience).forEach(p=>{ allPassengers=allPassengers.filter(x=>x!==p); timeout(p); });
+        if(codeActive && userScript && userScript.update) { try{ userScript.update(dt,elevators,floorsData); }catch(e){} }
+        if(allPassengers.length>=MAX_WAITING || unserved>=MAX_UNSERVED) gameOver();
+        updateElevatorsUI(); renderFloors(); updateHUD();
+        requestAnimationFrame(loop);
+      }
+
+      function reset() {
+        score=0;credits=0;streakCount=0;lastDelivery=-10;totalDelivered=0;totalWait=0;unserved=0;gameTime=0;spawnTimer=0;allPassengers=[];
+        gameRunning=true; lastFrame=performance.now();
+        initFloors(); initElevators(); renderFloors(); updateHUD();
+        document.getElementById('gameover-modal').classList.add('hidden');
+        codeActive=false; userScript=null;
+      }
 </body>
 </html>
