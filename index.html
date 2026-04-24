@@ -583,13 +583,45 @@
                 for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
                     const floorObj = new EventEmitter();
                     floorObj.level = i;
-                    if (i < 4) floorObj.tier = 'DRONE_ZONE';
-                    else if (i < 8) floorObj.tier = 'WORKER_HUB';
+                    if (i < 10) floorObj.tier = 'DRONE_ZONE';
+                    else if (i < 25) floorObj.tier = 'WORKER_HUB';
                     else floorObj.tier = 'EXEC_SUITE';
                     this.floors.push(floorObj);
                 }
 
                 this.initUI();
+                this.initInput();
+            }
+
+            initInput() {
+                let isDragging = false;
+                let lastY = 0;
+
+                this.canvas.addEventListener('mousedown', e => {
+                    isDragging = true;
+                    lastY = e.clientY;
+                });
+
+                window.addEventListener('mousemove', e => {
+                    if (isDragging) {
+                        const dy = e.clientY - lastY;
+                        this.worldY += dy;
+                        lastY = e.clientY;
+                        this.clampScroll();
+                    }
+                });
+
+                window.addEventListener('mouseup', () => isDragging = false);
+
+                this.canvas.addEventListener('wheel', e => {
+                    this.worldY -= e.deltaY;
+                    this.clampScroll();
+                }, { passive: true });
+            }
+
+            clampScroll() {
+                const maxScroll = (CONFIG.MAX_FLOORS * CONFIG.FLOOR_HEIGHT) - this.canvas.height + 100;
+                this.worldY = Math.min(0, Math.max(-maxScroll, this.worldY));
             }
 
             initUI() {
