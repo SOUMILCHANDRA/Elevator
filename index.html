@@ -3,405 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUBNET LIFT | Vertical Order</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <title>SUBNET LIFT – Vertical Order</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0d0d0d;
-            --primary: #00f0ff;
-            --secondary: #ff00c8;
-            --accent: #39ff14;
-            --text-color: #e0e0e0;
-            --glass: rgba(255, 255, 255, 0.05);
+            --bg: #0d0d0d;
+            --cyan: #00f0ff;
+            --magenta: #ff00c8;
+            --green: #39ff14;
+            --yellow: #ffe040;
+            --glass: rgba(20, 20, 30, 0.7);
             --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: var(--cyan);
+            --accent: var(--magenta);
+            --text: #c0c0d0;
+            --dim: #555570;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Orbitron', sans-serif;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background: var(--bg);
+            background-image: radial-gradient(circle at center, #1a1a2e 0%, #0d0d0d 100%);
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--text);
             overflow: hidden;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
+            width: 100vw;
+            user-select: none;
         }
 
-        #game-container {
-            position: relative;
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-            background: #0d0d0d;
-        }
-
-        #render-canvas {
-            flex: 1;
-            background: #0d0d0d;
-        }
-
-        #ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        /* Glitch Scanlines */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.01), rgba(0, 255, 0, 0.005), rgba(0, 0, 255, 0.01));
+            background-size: 100% 3px, 3px 100%;
             pointer-events: none;
-            z-index: 10;
+            z-index: 10000;
+            opacity: 0.3;
         }
 
-        .hud-panel {
-            position: absolute;
-            padding: 20px;
-            background: rgba(13, 13, 13, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            pointer-events: auto;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        }
-
-        #stats-panel {
-            top: 20px;
-            left: 20px;
-            width: 250px;
-            border-left: 4px solid var(--primary);
-        }
-
-        #control-panel {
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            height: 250px;
-            display: flex;
-            gap: 20px;
-            transition: transform 0.3s ease;
-        }
-
-        #editor-container {
-            flex: 1;
+        #app {
             display: flex;
             flex-direction: column;
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid var(--primary);
-            position: relative;
+            height: 100vh;
+            width: 100vw;
+            backdrop-filter: blur(5px);
         }
 
-        #code-editor {
-            flex: 1;
-            background: transparent;
-            color: var(--primary);
-            border: none;
-            padding: 15px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            resize: none;
-            outline: none;
-        }
-
-        .btn {
-            background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 10px 20px;
-            cursor: pointer;
-            text-transform: uppercase;
-            font-weight: bold;
-            transition: all 0.2s;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 1px;
-        }
-
-        .btn:hover {
-            background: var(--primary);
-            color: #000;
-            box-shadow: 0 0 20px var(--primary);
-        }
-
-        .btn-secondary {
-            border-color: var(--secondary);
-            color: var(--secondary);
-        }
-
-        .btn-secondary:hover {
-            background: var(--secondary);
-            color: #000;
-            box-shadow: 0 0 20px var(--secondary);
-        }
-
-        /* Scanline effect */
-        #ui-overlay::after {
-            content: " ";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 3px, 2px 100%;
-            pointer-events: none;
-            z-index: 100;
-            opacity: 0.5;
-        }
-
-        .label {
-            font-size: 10px;
-            color: var(--primary);
-            opacity: 0.7;
-            margin-bottom: 5px;
-            display: block;
-            letter-spacing: 2px;
-        }
-
-        .value {
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 0 0 10px var(--primary);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        #mode-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .floor-indicator {
-            position: absolute;
-            right: 20px;
-            top: 100px;
-            bottom: 20px;
-            display: flex;
-            flex-direction: column-reverse;
-            gap: 5px;
-            pointer-events: auto;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
-
-        .floor-indicator::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .floor-indicator::-webkit-scrollbar-thumb {
-            background: var(--primary);
-        }
-
-        .floor-btn {
-            width: 45px;
-            min-height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .floor-btn.active {
-            border-color: var(--secondary);
-            color: var(--secondary);
-            box-shadow: inset 0 0 10px var(--secondary), 0 0 10px var(--secondary);
-        }
-
-        .blink {
-            animation: blink-anim 0.5s infinite;
-        }
-
-        @keyframes blink-anim {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        #mode-selection {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0d0d0d;
-            z-index: 3000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .mode-card {
-            width: 350px;
-            padding: 30px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            cursor: pointer;
-            transition: all 0.3s;
-            margin: 20px;
-        }
-
-        .mode-card:hover {
-            border-color: var(--primary);
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
-            transform: translateY(-5px);
-        }
-
-        .mode-card h3 {
-            color: var(--primary);
-            margin-bottom: 15px;
-            letter-spacing: 2px;
-        }
-
-        .mode-card p {
-            font-size: 12px;
-            color: #888;
-            line-height: 1.6;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        #manual-ui {
-            position: absolute;
-            top: 20px;
-            left: 290px;
-            display: flex;
-            gap: 15px;
-            pointer-events: auto;
-        }
-
-        .elevator-control {
-            width: 180px;
-            background: rgba(13, 13, 13, 0.9);
-            border: 1px solid var(--primary);
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .control-btn {
-            font-size: 9px;
-            padding: 5px;
-            background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-
-        .control-btn:hover {
-            background: var(--primary);
-            color: #000;
-        }
-
-        #shop-panel {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            pointer-events: auto;
-            background: rgba(0,0,0,0.8);
-            padding: 10px 20px;
-            border: 1px solid var(--accent);
-        }
-
-        .glitch-text {
-            font-size: 72px;
-            color: var(--primary);
-            text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent);
-            margin-bottom: 20px;
-            letter-spacing: 5px;
-            font-weight: 900;
-            animation: glitch-anim 2s infinite linear alternate-reverse;
-        }
-
-        @keyframes glitch-anim {
-            0% { text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent); }
-            25% { text-shadow: -3px 3px var(--secondary), 3px -3px var(--accent); }
-            50% { text-shadow: 3px -3px var(--secondary), -3px 3px var(--accent); }
-            75% { text-shadow: -3px -3px var(--secondary), 3px 3px var(--accent); }
-            100% { text-shadow: 3px 3px var(--secondary), -3px -3px var(--accent); }
-        }
-
+        /* TOP BAR */
         #top-bar {
             height: 60px;
-            background: #000;
+            background: rgba(0, 0, 0, 0.8);
             border-bottom: 1px solid var(--glass-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 30px;
-            position: relative;
+            backdrop-filter: blur(15px);
             z-index: 100;
         }
 
-        #main-layout {
+        .title-group {
             display: flex;
-            height: calc(100vh - 60px);
-            width: 100vw;
+            align-items: baseline;
+            gap: 15px;
+        }
+
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 8px;
+            color: var(--cyan);
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+        }
+
+        .subtitle {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            color: var(--dim);
+            letter-spacing: 2px;
+        }
+
+        /* MAIN LAYOUT */
+        #main {
+            display: flex;
+            flex: 1;
             overflow: hidden;
         }
 
-        #floor-column {
-            width: 20%;
+        /* LEFT: Floor Strip */
+        #floor-strip {
+            width: 140px;
+            background: rgba(0, 0, 0, 0.4);
             border-right: 1px solid var(--glass-border);
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            background: rgba(0,0,0,0.5);
+            scrollbar-width: none;
+            backdrop-filter: blur(10px);
         }
 
-        #shaft-column {
-            width: 60%;
-            position: relative;
-            background: radial-gradient(circle at center, #111, #000);
-        }
-
-        #hud-column {
-            width: 20%;
-            border-left: 1px solid var(--glass-border);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            background: rgba(0,0,0,0.8);
-        }
+        #floor-strip::-webkit-scrollbar { display: none; }
 
         .floor-row {
-            height: 120px;
-            border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+            height: 24px;
+            min-height: 24px;
             display: flex;
             align-items: center;
-            padding: 0 20px;
-            position: relative;
-            transition: background 0.3s;
+            padding: 0 10px;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .floor-row:hover { background: rgba(0, 240, 255, 0.05); }
+        .floor-row:hover {
+            background: rgba(0, 240, 255, 0.1);
+        }
 
         .floor-num {
-            font-size: 24px;
-            font-weight: 900;
-            color: #333;
-            width: 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            width: 20px;
+            color: var(--dim);
         }
 
-        .floor-row.active .floor-num { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+        .floor-row.active .floor-num {
+            color: var(--cyan);
+            text-shadow: 0 0 5px var(--cyan);
+        }
 
         .waiting-dots {
             display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-left: 15px;
-            max-width: 100px;
+            gap: 2px;
+            flex: 1;
+            overflow: hidden;
         }
 
         .dot {
@@ -409,1068 +154,947 @@
             height: 6px;
             border-radius: 50%;
             box-shadow: 0 0 5px currentColor;
+            flex-shrink: 0;
         }
 
-        .hud-panel-v2 {
+        /* CENTER: Shaft Area */
+        #shaft-area {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #111, #000);
+            display: flex;
+            justify-content: center;
+            padding: 20px 40px;
+            gap: 40px;
+        }
+
+        .shaft {
+            width: 80px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 1px solid var(--glass-border);
+            border-right: 1px solid var(--glass-border);
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .elevator-car {
+            position: absolute;
+            width: 70px;
+            left: 5px;
+            height: 50px;
             background: var(--glass);
-            padding: 15px;
+            border: 1px solid var(--cyan);
+            border-radius: 4px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s linear;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .elevator-car.exec-heavy {
+            border-color: var(--magenta);
+            box-shadow: 0 0 15px rgba(255, 0, 200, 0.3);
+        }
+
+        .car-id {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8px;
+            color: var(--cyan);
+            opacity: 0.8;
+        }
+
+        .car-load {
+            font-size: 8px;
+            color: var(--dim);
+        }
+
+        .car-passengers {
+            display: flex;
+            gap: 1px;
+            margin-top: 2px;
+        }
+
+        /* RIGHT: HUD Panel */
+        #hud {
+            width: 260px;
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 15px;
+            backdrop-filter: blur(20px);
+        }
+
+        .stat-card {
+            background: var(--glass);
             border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            color: var(--dim);
+            letter-spacing: 1px;
+        }
+
+        .value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--cyan);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+
+        .value.accent {
+            color: var(--magenta);
+            text-shadow: 0 0 10px rgba(255, 0, 200, 0.5);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            border-radius: 2px;
+        }
+
+        .btn:hover {
+            background: rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn.secondary {
+            border-color: var(--magenta);
+            color: var(--magenta);
+        }
+
+        .btn.secondary:hover {
+            background: rgba(255, 0, 200, 0.1);
+            box-shadow: 0 0 15px rgba(255, 0, 200, 0.4);
         }
 
         .speed-toggles {
             display: flex;
             gap: 5px;
-            margin-top: 10px;
         }
 
-        .btn-small {
+        .speed-btn {
             flex: 1;
-            padding: 5px;
+            padding: 6px;
             background: #111;
             border: 1px solid #333;
             color: #555;
-            font-size: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .btn-small.active {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: rgba(255, 0, 200, 0.1);
+        .speed-btn.active {
+            border-color: var(--green);
+            color: var(--green);
+            background: rgba(57, 255, 20, 0.1);
         }
 
-        #resolution-warning {
+        /* MODALS */
+        .overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: #0d0d0d;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
-        }
-
-        @media (max-width: 1023px) {
-            #resolution-warning { display: flex; }
-            #main-layout, #top-bar { display: none; }
-        }
-
-        .warning-pulse {
-            animation: warning-anim 0.5s infinite alternate;
-        }
-        @keyframes warning-anim {
-            from { color: var(--primary); }
-            to { color: var(--accent); text-shadow: 0 0 10px var(--accent); }
-        }
-
-        .overlay-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(13, 13, 13, 0.98);
-            z-index: 5000;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 50px;
-            text-align: center;
+            backdrop-filter: blur(10px);
         }
 
-        .mode-card {
+        .modal {
             background: var(--glass);
             border: 1px solid var(--glass-border);
-            padding: 30px;
-            width: 300px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .mode-card:hover { border-color: var(--primary); background: rgba(0, 240, 255, 0.1); transform: translateY(-5px); }
-        .mode-card h3 { margin-bottom: 15px; color: var(--primary); }
-        .mode-card p { font-size: 11px; color: #888; font-family: 'JetBrains Mono'; line-height: 1.6; }
-
-        #tutorial-overlay {
-            display: none;
-            max-width: 800px;
-            text-align: left;
-            background: #000;
-            border: 1px solid var(--primary);
             padding: 40px;
-            box-shadow: 0 0 50px rgba(0, 240, 255, 0.2);
-        }
-        #tutorial-overlay h2 { color: var(--primary); margin-bottom: 20px; }
-        #tutorial-overlay ul { list-style: none; padding: 0; }
-        #tutorial-overlay li { margin-bottom: 10px; font-size: 13px; color: #ccc; }
-        #tutorial-overlay li strong { color: var(--accent); }
-
-        #shop-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(13, 13, 13, 0.95);
-            z-index: 2000;
-            display: none;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 50px;
+            gap: 20px;
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.1);
+        }
+
+        .modal h2 {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 5px;
+            color: var(--cyan);
+        }
+
+        .modal p {
+            font-size: 13px;
+            color: var(--dim);
+            line-height: 1.6;
+        }
+
+        .hidden { display: none !important; }
+
+        /* SHOP */
+        #shop-overlay .modal {
+            max-width: 800px;
+            max-height: 80vh;
             overflow-y: auto;
-            pointer-events: auto;
         }
 
         .shop-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
-            margin-top: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            text-align: left;
         }
 
         .shop-card {
-            background: var(--glass);
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--glass-border);
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
             transition: all 0.3s;
         }
 
-        .shop-card:hover { border-color: var(--primary); background: rgba(0, 240, 255, 0.05); }
-        .shop-card h4 { color: var(--primary); letter-spacing: 1px; }
-        .shop-card p { font-size: 11px; color: #888; font-family: 'JetBrains Mono'; }
-        .shop-card .cost { font-size: 18px; color: var(--accent); font-weight: bold; }
-
-        #confirm-modal {
-            position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #0d0d0d;
-            border: 2px solid var(--secondary);
-            padding: 30px;
-            z-index: 2100;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            box-shadow: 0 0 50px rgba(255, 0, 200, 0.3);
-            pointer-events: auto;
+        .shop-card:hover {
+            border-color: var(--cyan);
+            background: rgba(0, 240, 255, 0.05);
         }
+
+        .shop-card h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            color: var(--cyan);
+        }
+
+        .shop-card p {
+            font-size: 10px;
+            color: var(--dim);
+        }
+
+        .shop-card .cost {
+            font-size: 14px;
+            color: var(--green);
+            font-weight: bold;
+        }
+
+        /* CODE TERMINAL */
+        #code-terminal {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        #editor {
+            flex: 1;
+            background: #050505;
+            border: 1px solid var(--glass-border);
+            color: var(--green);
+            padding: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            resize: none;
+            outline: none;
+        }
+
+        #console {
+            height: 100px;
+            background: #000;
+            border: 1px solid #111;
+            color: #555;
+            padding: 8px;
+            font-size: 10px;
+            overflow-y: auto;
+        }
+
+        /* UTILS */
+        .glitch-anim {
+            animation: glitch 3s infinite;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            95% { transform: translate(0); }
+            96% { transform: translate(-2px, 1px); }
+            97% { transform: translate(2px, -1px); }
+            98% { transform: translate(-1px, -1px); }
+            99% { transform: translate(1px, 1px); }
+            100% { transform: translate(0); }
+        }
+
     </style>
 </head>
 <body>
-    <div id="resolution-warning">
-        <h1 class="glitch-text" style="font-size: 24px;">RESOLUTION_BREACH</h1>
-        <p>System UI requires minimum 1024px width for operational stability.</p>
-    </div>
-
-    <div id="top-bar">
-        <h1 class="glitch-text" style="font-size: 24px; margin: 0; letter-spacing: 10px;">SUBNET LIFT</h1>
-        <div id="global-stats" style="display: flex; gap: 30px; font-size: 12px; color: var(--primary);">
-            <div id="unserved-display">UNSERVED: <span style="color: var(--accent);">0</span> / 20</div>
-            <div id="clock-display">TIME: 00:00</div>
-        </div>
-    </div>
-
-    <div id="main-layout">
-        <div id="floor-column">
-            <!-- Floor strip 29 down to 0 -->
-            <div id="floor-list-container"></div>
+    <div id="app">
+        <!-- TOP BAR -->
+        <div id="top-bar">
+            <div class="title-group">
+                <h1 class="title glitch-anim">SUBNET LIFT</h1>
+                <span class="subtitle">// VERTICAL_ORDER_PROTOCOL</span>
+            </div>
+            <div id="top-stats" style="display: flex; gap: 30px; font-size: 12px; font-weight: bold;">
+                <div id="unserved-stat">UNSERVED: <span style="color: var(--magenta);">0</span> / 20</div>
+                <div id="time-stat">TIME: 00:00</div>
+            </div>
         </div>
 
-        <div id="shaft-column">
-            <canvas id="render-canvas"></canvas>
-        </div>
+        <!-- MAIN -->
+        <div id="main">
+            <!-- LEFT: Floor Strip -->
+            <div id="floor-strip">
+                <!-- Generated by JS -->
+            </div>
 
-        <div id="hud-column">
-            <div id="hud-content">
-                <div class="hud-panel-v2">
+            <!-- CENTER: Shaft Area -->
+            <div id="shaft-area">
+                <div id="shafts-container" style="display: flex; gap: 40px; height: 100%;">
+                    <!-- Shafts generated by JS -->
+                </div>
+            </div>
+
+            <!-- RIGHT: HUD -->
+            <div id="hud">
+                <div class="stat-card">
                     <span class="label">CORPORATE_COMPLIANCE</span>
-                    <div id="compliance-value" class="value" style="font-size: 24px;">100%</div>
-                    <div id="credits-value" class="value" style="color: var(--accent); font-size: 18px;">0 CR</div>
+                    <div id="compliance-val" class="value">100%</div>
+                    <div id="credits-val" class="value accent" style="font-size: 16px;">0 CR</div>
                 </div>
 
-                <div class="hud-panel-v2" style="margin-top: 20px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <div><span class="label">STREAK</span><div id="streak-value" class="value">1.0x</div></div>
-                        <div><span class="label">LOAD</span><div id="load-value" class="value">0%</div></div>
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between;">
+                        <div>
+                            <span class="label">STREAK</span>
+                            <div id="streak-val" class="value" style="font-size: 16px;">1.0x</div>
+                        </div>
+                        <div>
+                            <span class="label">LOAD</span>
+                            <div id="load-val" class="value" style="font-size: 16px;">0%</div>
+                        </div>
                     </div>
-                    <span class="label">AVG_WAIT</span>
-                    <div id="avg-wait-value" class="value">0s</div>
-                    <span class="label" style="margin-top: 10px; display: block;">HIGH_SCORE</span>
-                    <div id="high-score-value" class="value" style="color: var(--accent);">0</div>
                 </div>
 
-                <div class="hud-panel-v2" style="margin-top: 20px;">
-                    <span class="label">SIMULATION_CLOCK</span>
+                <div class="stat-card">
+                    <span class="label">AVG_WAIT_TIME</span>
+                    <div id="avg-wait-val" class="value" style="font-size: 16px;">0.0s</div>
+                </div>
+
+                <div class="stat-card">
+                    <span class="label">SIMULATION_SPEED</span>
                     <div class="speed-toggles">
-                        <button onclick="world.setSimSpeed(1)" id="speed-1" class="btn-small active">1X</button>
-                        <button onclick="world.setSimSpeed(5)" id="speed-5" class="btn-small">5X</button>
-                        <button onclick="world.setSimSpeed(10)" id="speed-10" class="btn-small">10X</button>
+                        <button class="speed-btn active" data-speed="1">1X</button>
+                        <button class="speed-btn" data-speed="5">5X</button>
+                        <button class="speed-btn" data-speed="10">10X</button>
                     </div>
                 </div>
 
-                <div class="hud-panel-v2" style="margin-top: 20px;">
-                    <button class="btn btn-secondary" style="width: 100%;" onclick="world.toggleShop(true)">INFRASTRUCTURE_SHOP</button>
-                    <button class="btn" style="width: 100%; margin-top: 10px;" id="mode-switch-btn" onclick="world.confirmModeSwitch()">SWITCH_TO_LOGIC</button>
-                </div>
+                <button class="btn secondary" id="shop-btn">INFRASTRUCTURE_SHOP</button>
+                <button class="btn" id="mode-toggle-btn">SWITCH_TO_LOGIC</button>
+                <button class="btn" id="dispatch-all-btn" style="border-color: var(--green); color: var(--green);">DISPATCH_ALL</button>
 
-                <div id="coding-panel" style="display: none; flex-direction: column; flex-grow: 1; margin-top: 20px; overflow: hidden;">
-                    <span class="label">OPTIMIZER_PROTOCOL</span>
-                    <textarea id="code-editor" spellcheck="false" style="flex-grow: 1; min-height: 200px;">// Protocol injected...</textarea>
-                    <button id="btn-apply" class="btn" style="margin-top: 10px;">EXECUTE_PROTOCOL</button>
-                    <div id="console-log" style="height: 150px; background: #000; border: 1px solid #333; margin-top: 10px; padding: 10px; font-size: 10px; font-family: 'JetBrains Mono'; color: #0f0; overflow-y: auto;">
-                        > SYSTEM_READY...
-                    </div>
-                </div>
-                
-                <div id="manual-controls" style="margin-top: 20px;">
-                    <!-- Manual controls generated here -->
+                <!-- CODE TERMINAL (Hidden by default) -->
+                <div id="code-terminal" class="hidden">
+                    <span class="label">OPTIMIZER_SCRIPT</span>
+                    <textarea id="editor" spellcheck="false">// Initializing...
+function init(elevators, floors) {
+  elevators.forEach(e => {
+    e.on("idle", () => {
+      // Find floor with most waiting
+      let best = 0;
+      let max = 0;
+      floors.forEach((f, i) => {
+        let count = f.waitingPassengers().length;
+        if(count > max) { max = count; best = i; }
+      });
+      e.goToFloor(best);
+    });
+  });
+}
+</textarea>
+                    <button class="btn" id="deploy-btn" style="padding: 8px;">DEPLOY_PROTOCOL</button>
+                    <div id="console">> TERMINAL_READY...</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="shop-overlay">
-        <div style="display: flex; justify-content: space-between; width: 100%; max-width: 1200px; align-items: center;">
-            <h1 class="glitch-text" style="font-size: 32px; margin-bottom: 0;">INFRASTRUCTURE_SHOP</h1>
-            <button class="btn" onclick="world.toggleShop(false)">EXIT_TERMINAL</button>
+    <!-- START OVERLAY -->
+    <div id="start-overlay" class="overlay">
+        <div class="modal">
+            <h2>INITIALIZE_BOOT</h2>
+            <p>Select your operational interface for the SUBNET LIFT system.</p>
+            <div style="display: flex; gap: 20px;">
+                <button class="btn" id="manual-start-btn" style="flex: 1; padding: 20px;">🕹️ MANUAL_CONTROL</button>
+                <button class="btn secondary" id="logic-start-btn" style="flex: 1; padding: 20px;">💻 LOGISTICS_CODING</button>
+            </div>
+            <p style="font-size: 10px; color: #444;">Drones (Green), Workers (Cyan), Executives (Magenta)</p>
         </div>
-        <div class="shop-grid" id="shop-grid"></div>
     </div>
 
-    <div id="confirm-modal">
-        <h3 id="confirm-title">CONFIRM_PURCHASE</h3>
-        <p id="confirm-desc" style="font-size: 12px; color: #888; text-align: center;"></p>
-        <div style="display: flex; gap: 20px;">
-            <button class="btn" id="confirm-yes">AUTHORIZE</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('confirm-modal').style.display='none'">ABORT</button>
+    <!-- SHOP OVERLAY -->
+    <div id="shop-overlay" class="overlay hidden">
+        <div class="modal">
+            <h2>INFRASTRUCTURE_SHOP</h2>
+            <div class="shop-grid" id="shop-grid">
+                <!-- Generated by JS -->
+            </div>
+            <div style="margin-top: 20px; font-weight: bold; color: var(--green);">CREDITS: <span id="shop-credits">0</span> CR</div>
+            <button class="btn" id="close-shop-btn">CLOSE_TERMINAL</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div id="gameover-overlay" class="overlay hidden">
+        <div class="modal" style="border-color: var(--magenta);">
+            <h2 style="color: var(--magenta);">SYSTEM_COLLAPSE</h2>
+            <p id="gameover-reason">The vertical order has been breached.</p>
+            <div class="stat-card">
+                <span class="label">FINAL_SCORE</span>
+                <div id="final-score" class="value" style="font-size: 32px;">0</div>
+            </div>
+            <button class="btn" id="restart-btn">REBOOT_SYSTEM</button>
         </div>
     </div>
 
     <script>
-        /* --- CORE CONFIGURATION & CONSTANTS --- */
-        const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(freq, type = 'sine', duration = 0.1, volume = 0.1) {
-            const osc = AudioCtx.createOscillator();
-            const gain = AudioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, AudioCtx.currentTime);
-            gain.gain.setValueAtTime(volume, AudioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, AudioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(AudioCtx.destination);
-            osc.start();
-            osc.stop(AudioCtx.currentTime + duration);
-        }
-
+        /* --- CORE LOGIC --- */
         const CONFIG = {
-            FLOOR_HEIGHT: 120,
-            ELEVATOR_WIDTH: 70,
-            ELEVATOR_HEIGHT: 90,
-            MAX_FLOORS: 30,
-            NUM_ELEVATORS: 2,
-            SPEED: 1, 
-            DOOR_SPEED: 0.1,
-            SIM_SPEED: 10,
-            LOSS_THRESHOLD: 25,
-            WAIT_TIME_CAP: 300,
-            CAPACITY: 8,
-            EXEC_PATIENCE_BUFF: 0,
-            DRONE_POINT_BUFF: 0
+            FLOORS: 30,
+            MAX_ELEVATORS: 4,
+            INITIAL_ELEVATORS: 2,
+            BASE_CAPACITY: 8,
+            BASE_SPEED: 1.0, // seconds per floor
+            DOOR_TIME: 0.6,
+            MAX_WAITING: 40,
+            LOSS_UNSERVED: 20
         };
 
-        /* --- EVENT SYSTEM --- */
-        class EventEmitter {
-            constructor() { this.listeners = {}; }
-            on(event, callback) {
-                if (!this.listeners[event]) this.listeners[event] = [];
-                this.listeners[event].push(callback);
-            }
-            emit(event, ...args) {
-                if (this.listeners[event]) { this.listeners[event].forEach(cb => cb(...args)); }
-            }
-        }
-
-        /* --- ELEVATOR ENGINE --- */
-        class Elevator extends EventEmitter {
-            constructor(id, x) {
-                super();
-                this.id = id;
-                this.x = x;
-                this.y = 0;
-                this._currentFloor = 0;
-                this.state = 'idle'; 
-                this.doorOpen = 0; 
-                this.passengers = [];
-                this.capacity = CONFIG.CAPACITY;
-                this.destinationQueue = [];
-                this.direction = 0; 
-                this.timer = 0;
-            }
-
-            get currentFloor() { return this._currentFloor; }
-            maxPassengers() { return this.capacity; }
-            currentWeight() { return this.passengers.reduce((sum, p) => sum + p.weight, 0); }
-            loadFactor() { return this.currentWeight() / this.capacity; }
-            
-            goToFloor(floorNum) {
-                if (!this.destinationQueue.includes(floorNum)) { this.destinationQueue.push(floorNum); }
-            }
-
-            stop() {
-                this.destinationQueue = [];
-                this.state = 'idle';
-                this.direction = 0;
-            }
-
-            update(dt) {
-                if (this.state === 'idle' && this.destinationQueue.length > 0) {
-                    this.targetFloor = this.destinationQueue.shift();
-                    this.state = 'moving';
-                    this.direction = this.targetFloor > this._currentFloor ? 1 : -1;
-                }
-
-                if (this.state === 'moving') {
-                    const targetY = this.targetFloor * CONFIG.FLOOR_HEIGHT;
-                    const dy = targetY - this.y;
-                    const moveStep = CONFIG.SPEED * CONFIG.FLOOR_HEIGHT * dt;
-                    const oldFloor = Math.round(this.y / CONFIG.FLOOR_HEIGHT);
-                    this.y += Math.sign(dy) * moveStep;
-                    const newFloor = Math.round(this.y / CONFIG.FLOOR_HEIGHT);
-                    if (oldFloor !== newFloor) { this.emit('passing_floor', newFloor, this.direction); }
-
-                    if (Math.abs(dy) <= Math.abs(moveStep)) {
-                        this.y = targetY;
-                        this._currentFloor = this.targetFloor;
-                        this.state = 'opening';
-                        this.emit('stopped_at_floor', this._currentFloor);
-                    }
-                }
-
-                if (this.state === 'opening') {
-                    this.doorOpen += CONFIG.DOOR_SPEED * (dt * 60); 
-                    if (this.doorOpen >= 1) {
-                        this.doorOpen = 1;
-                        this.state = 'open';
-                        this.timer = 1.0; // minimum open time
-                        this.boardingTimer = 0;
-                        this.emit('floor_reached', this._currentFloor);
-                    }
-                }
-
-                if (this.state === 'open') {
-                    if (this.boardingTimer > 0) {
-                        this.boardingTimer -= dt;
-                    } else {
-                        this.timer -= dt;
-                        if (this.timer <= 0) { this.state = 'closing'; }
-                    }
-                }
-
-                if (this.state === 'closing') {
-                    this.doorOpen -= CONFIG.DOOR_SPEED * (dt * 60);
-                    if (this.doorOpen <= 0) {
-                        this.doorOpen = 0;
-                        this.state = 'idle';
-                        this.emit('idle');
-                    }
-                }
-            }
-
-            draw(ctx, worldY) {
-                const screenY = ctx.canvas.height - (this.y + CONFIG.ELEVATOR_HEIGHT) + worldY;
-                const beamGrad = ctx.createLinearGradient(this.x, 0, this.x + CONFIG.ELEVATOR_WIDTH, 0);
-                beamGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
-                beamGrad.addColorStop(0.5, 'rgba(0, 240, 255, 0.1)');
-                beamGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
-                ctx.fillStyle = beamGrad;
-                ctx.fillRect(this.x, 0, CONFIG.ELEVATOR_WIDTH, ctx.canvas.height);
-
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.state === 'moving' ? '#00f0ff' : 'transparent';
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
-                ctx.strokeStyle = this.state === 'moving' ? '#00f0ff' : '#333';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x, screenY, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
-                ctx.shadowBlur = 0;
-
-                const doorW = (CONFIG.ELEVATOR_WIDTH / 2) * (1 - this.doorOpen);
-                ctx.fillStyle = '#0a0a0a';
-                ctx.fillRect(this.x, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
-                ctx.fillRect(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
-                ctx.strokeStyle = '#00f0ff';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(this.x, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
-                ctx.strokeRect(this.x + CONFIG.ELEVATOR_WIDTH - doorW, screenY, doorW, CONFIG.ELEVATOR_HEIGHT);
-
-                ctx.fillStyle = '#00f0ff';
-                ctx.font = 'bold 10px JetBrains Mono';
-                ctx.textAlign = 'center';
-                ctx.fillText(`LVL_${this._currentFloor}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + 15);
-                ctx.fillText(`${this.passengers.length}/${this.capacity}`, this.x + CONFIG.ELEVATOR_WIDTH/2, screenY + CONFIG.ELEVATOR_HEIGHT - 5);
-            }
-        }
-
-        /* --- PASSENGER ENTITIES --- */
-        class Person {
-            constructor(type, startFloor, targetFloor) {
-                this.type = type; // 'EXEC', 'WORKER', 'DRONE'
-                this.startFloor = startFloor;
-                this.targetFloor = targetFloor;
-                this.state = 'waiting'; 
-                this.x = 20 + Math.random() * 80;
-                this.waitTimer = 0;
-                this.elevator = null;
+        class Passenger {
+            constructor(floor, dest, type) {
                 this.id = Math.random().toString(36).substr(2, 9);
-                
-                switch(type) {
-                    case 'EXEC':
-                        this.color = '#ff00c8';
-                        this.weight = 2;
-                        this.maxWait = 15 + CONFIG.EXEC_PATIENCE_BUFF;
-                        this.reward = 20;
-                        this.penalty = 50;
-                        this.tier = 'EXEC';
-                        break;
-                    case 'WORKER':
-                        this.color = '#00f0ff';
-                        this.weight = 1;
-                        this.maxWait = 30;
-                        this.reward = 10;
-                        this.penalty = 20;
-                        this.tier = 'WORKER';
-                        break;
-                    case 'DRONE':
-                        this.color = '#39ff14';
-                        this.weight = 0.5;
-                        this.maxWait = 60;
-                        this.reward = 5 + CONFIG.DRONE_POINT_BUFF;
-                        this.penalty = 5;
-                        this.tier = 'DRONE';
-                        break;
-                }
+                this.floor = floor;
+                this.dest = dest;
+                this.type = type; // 'exec', 'worker', 'drone'
+                this.spawnTime = Date.now();
+                this.waiting = true;
             }
 
-            update(dt) {
-                if (this.state === 'waiting') {
-                    this.waitTimer += dt;
-                }
+            get patience() {
+                if (this.type === 'exec') return 15000 + (world.upgrades.vip ? 5000 : 0);
+                if (this.type === 'worker') return 30000;
+                return 60000;
             }
 
-            draw(ctx, worldY) {
-                if (this.state === 'inside') return;
-                const y = ctx.canvas.height - (this.startFloor * CONFIG.FLOOR_HEIGHT + 15) + worldY;
-                
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = this.color;
-                ctx.fillStyle = this.color;
-                
-                if (this.type === 'EXEC') {
-                    // Sharp glossy diamond/avatar
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, y - 8);
-                    ctx.lineTo(this.x + 6, y);
-                    ctx.lineTo(this.x, y + 8);
-                    ctx.lineTo(this.x - 6, y);
-                    ctx.closePath();
-                    ctx.fill();
-                } else if (this.type === 'WORKER') {
-                    // Modest uniform avatar
-                    ctx.fillRect(this.x - 4, y - 6, 8, 12);
-                } else {
-                    // Small drone avatar
-                    ctx.beginPath();
-                    ctx.arc(this.x, y, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillRect(this.x - 6, y - 1, 12, 2); // drone arms
-                }
-                
-                ctx.shadowBlur = 0;
+            get weight() {
+                if (this.type === 'exec') return 2.0;
+                if (this.type === 'worker') return 1.0;
+                return 0.5;
+            }
+
+            get reward() {
+                let base = (this.type === 'exec' ? 20 : (this.type === 'worker' ? 10 : 5));
+                if (this.type === 'drone' && world.upgrades.droneBonus) base += 2;
+                return base;
+            }
+
+            get color() {
+                if (this.type === 'exec') return '#ff00c8';
+                if (this.type === 'worker') return '#00f0ff';
+                return '#39ff14';
             }
         }
 
-        class Floor extends EventEmitter {
-            constructor(level) {
-                super();
-                this.level = level;
-                this.tier = level < 10 ? 'DRONE_ZONE' : (level < 25 ? 'WORKER_HUB' : 'EXEC_SUITE');
-                this.people = [];
+        class Elevator {
+            constructor(id) {
+                this.id = id;
+                this.currentFloor = 0; // Float
+                this.targetFloor = null;
+                this.queue = [];
+                this.passengers = [];
+                this.state = 'idle'; // 'idle', 'moving', 'opening', 'open', 'closing'
+                this.doorProgress = 0;
+                this.waitTimer = 0;
+                this.direction = 0;
+                this.listeners = {};
             }
-            floorNum() { return this.level; }
-            waitingPassengers() {
-                return this.people.filter(p => p.state === 'waiting').map(p => ({
-                    destinationFloor: p.targetFloor, class: p.tier, timeWaiting: p.waitTimer
+
+            on(event, cb) {
+                if(!this.listeners[event]) this.listeners[event] = [];
+                this.listeners[event].push(cb);
+            }
+
+            emit(event, ...args) {
+                if(this.listeners[event]) this.listeners[event].forEach(cb => cb(...args));
+            }
+
+            get load() {
+                return this.passengers.reduce((s, p) => s + p.weight, 0);
+            }
+
+            get capacity() {
+                return CONFIG.BASE_CAPACITY + (world.upgrades.capacity * 2);
+            }
+
+            goToFloor(f) {
+                if (f < 0 || f >= CONFIG.FLOORS) return;
+                if (!this.queue.includes(f)) {
+                    this.queue.push(f);
+                    if (this.state === 'idle') this.processQueue();
+                }
+            }
+
+            processQueue() {
+                if (this.queue.length === 0) {
+                    this.state = 'idle';
+                    this.direction = 0;
+                    this.emit('idle');
+                    return;
+                }
+                this.targetFloor = this.queue.shift();
+                this.state = 'moving';
+                this.direction = this.targetFloor > this.currentFloor ? 1 : -1;
+            }
+
+            update(dt) {
+                const speed = (CONFIG.BASE_SPEED - (world.upgrades.speed * 0.15)) * (1/world.simSpeed);
+                
+                if (this.state === 'moving') {
+                    const step = (1 / speed) * dt;
+                    const dist = Math.abs(this.targetFloor - this.currentFloor);
+                    
+                    if (dist <= step) {
+                        this.currentFloor = this.targetFloor;
+                        this.state = 'opening';
+                        this.emit('stopped_at_floor', this.currentFloor);
+                    } else {
+                        this.currentFloor += this.direction * step;
+                    }
+                } else if (this.state === 'opening') {
+                    this.doorProgress += dt / (CONFIG.DOOR_TIME / world.simSpeed);
+                    if (this.doorProgress >= 1) {
+                        this.doorProgress = 1;
+                        this.state = 'open';
+                        this.waitTimer = 0.5 / world.simSpeed;
+                        this.loadUnload();
+                    }
+                } else if (this.state === 'open') {
+                    this.waitTimer -= dt;
+                    if (this.waitTimer <= 0) {
+                        this.state = 'closing';
+                    }
+                } else if (this.state === 'closing') {
+                    this.doorProgress -= dt / (CONFIG.DOOR_TIME / world.simSpeed);
+                    if (this.doorProgress <= 0) {
+                        this.doorProgress = 0;
+                        this.processQueue();
+                    }
+                }
+            }
+
+            loadUnload() {
+                const f = Math.round(this.currentFloor);
+                // Unload
+                const delivering = this.passengers.filter(p => p.dest === f);
+                this.passengers = this.passengers.filter(p => p.dest !== f);
+                delivering.forEach(p => world.completeDelivery(p));
+
+                // Load
+                const waiting = world.passengers.filter(p => p.floor === f && p.waiting);
+                waiting.forEach(p => {
+                    if (this.load + p.weight <= this.capacity) {
+                        p.waiting = false;
+                        this.passengers.push(p);
+                        if (!this.queue.includes(p.dest)) this.queue.push(p.dest);
+                    }
+                });
+            }
+        }
+
+        class World {
+            constructor() {
+                this.elevators = [];
+                this.passengers = [];
+                this.floors = [];
+                this.credits = parseInt(localStorage.getItem('subnet_credits') || 0);
+                this.highScore = parseInt(localStorage.getItem('subnet_highscore') || 0);
+                this.upgrades = JSON.parse(localStorage.getItem('subnet_upgrades') || '{"speed":0,"capacity":0,"extraLifts":0,"vip":false,"droneBonus":false}');
+                
+                this.simSpeed = 1;
+                this.running = false;
+                this.gameTime = 0;
+                this.unserved = 0;
+                this.score = 0;
+                this.lastDelivery = 0;
+                this.streak = 1;
+
+                this.mode = 'manual'; // 'manual' or 'logic'
+                this.userScript = null;
+
+                for(let i=0; i<CONFIG.FLOORS; i++) this.floors.push({ id: i, waiting: [] });
+                this.initElevators();
+            }
+
+            initElevators() {
+                const count = CONFIG.INITIAL_ELEVATORS + this.upgrades.extraLifts;
+                this.elevators = [];
+                for(let i=0; i<count; i++) this.elevators.push(new Elevator(i));
+                this.renderShafts();
+            }
+
+            start(mode) {
+                this.mode = mode;
+                this.running = true;
+                this.gameTime = Date.now();
+                document.getElementById('start-overlay').classList.add('hidden');
+                if(mode === 'logic') this.toggleLogicUI(true);
+                this.loop();
+            }
+
+            loop() {
+                if(!this.running) return;
+                const now = Date.now();
+                const dt = (now - this.gameTime) / 1000;
+                this.gameTime = now;
+
+                this.update(dt);
+                this.draw();
+                requestAnimationFrame(() => this.loop());
+            }
+
+            update(dt) {
+                // Spawn passengers
+                const spawnRate = 0.02 * this.simSpeed * (1 + (this.score / 1000));
+                if (Math.random() < spawnRate) this.spawnPassenger();
+
+                // Update elevators
+                this.elevators.forEach(e => e.update(dt));
+
+                // Check timeouts
+                const now = Date.now();
+                this.passengers.forEach((p, i) => {
+                    if (p.waiting && (now - p.spawnTime) > p.patience) {
+                        this.unserved++;
+                        this.passengers.splice(i, 1);
+                        if (this.unserved >= CONFIG.LOSS_UNSERVED) this.gameOver();
+                    }
+                });
+
+                // Logic mode execution
+                if (this.mode === 'logic' && this.userScript) {
+                    try {
+                        this.userScript(this.elevators, this.floorsProxy());
+                    } catch(e) {
+                        console.error("User script error:", e);
+                    }
+                }
+
+                // Check load breach
+                if (this.passengers.filter(p => p.waiting).length >= CONFIG.MAX_WAITING) {
+                    this.gameOver("LOAD_BREACH: System capacity exceeded.");
+                }
+            }
+
+            floorsProxy() {
+                return this.floors.map(f => ({
+                    level: f.id,
+                    waitingPassengers: () => this.passengers.filter(p => p.waiting && p.floor === f.id)
                 }));
             }
-        }
 
-        /* --- WORLD SIMULATION ENGINE --- */
-        class World extends EventEmitter {
-            constructor(canvas) {
-                super();
-                this.canvas = canvas;
-                this.ctx = canvas.getContext('2d');
-                this.elevators = [];
-                this.floors = [];
-                this.people = [];
-                this.compliance = 100;
-                this.credits = 0;
-                this.transported = 0;
-                this.worldY = 0;
-                this.mode = 'manual';
-                this.pulse = 0;
-                this.totalWaitTime = 0;
-                this.lastDeliveryTime = 0;
-                this.streakCount = 0;
-                this.highScore = localStorage.getItem('subnet_lift_highscore') || 0;
-                this.unservedCount = 0;
-                this.difficulty = 1.0;
-                this.spawnTimer = 0;
-                this.time = 0;
-                
-                this.upgrades = JSON.parse(localStorage.getItem('subnet_lift_upgrades')) || {
-                    speed: 0,
-                    capacity: 0,
-                    acceleration: 0,
-                    extraElevators: 0,
-                    vipPriority: 0,
-                    droneReplicator: 0
-                };
+            spawnPassenger() {
+                const typeRoll = Math.random();
+                let type = 'drone';
+                if(typeRoll > 0.9) type = 'exec';
+                else if(typeRoll > 0.6) type = 'worker';
 
-                this.applyUpgrades();
-                
-                for (let i = 0; i < CONFIG.NUM_ELEVATORS; i++) {
-                    this.elevators.push(new Elevator(i, 160 + i * 150));
+                let f, d;
+                if (type === 'exec') {
+                    f = Math.random() > 0.5 ? Math.floor(Math.random() * 5) : (25 + Math.floor(Math.random() * 5));
+                    d = Math.random() > 0.5 ? (20 + Math.floor(Math.random() * 10)) : Math.floor(Math.random() * 5);
+                } else {
+                    f = Math.floor(Math.random() * CONFIG.FLOORS);
+                    d = Math.floor(Math.random() * CONFIG.FLOORS);
                 }
+                if(f === d) d = (f + 1) % CONFIG.FLOORS;
 
-                for (let i = 0; i < CONFIG.MAX_FLOORS; i++) {
-                    this.floors.push(new Floor(i));
+                this.passengers.push(new Passenger(f, d, type));
+            }
+
+            completeDelivery(p) {
+                const now = Date.now();
+                const wait = now - p.spawnTime;
+                
+                // Bonus for speed
+                let bonus = 1;
+                if (wait < p.patience / 2) bonus = 1.5;
+
+                // Streak logic
+                if (now - this.lastDelivery < 5000) {
+                    this.streak = Math.min(5, this.streak + 0.1);
+                } else {
+                    this.streak = 1;
                 }
+                this.lastDelivery = now;
 
-                this.initUI();
-                this.initInput();
+                const gain = Math.round(p.reward * bonus * this.streak);
+                this.score += gain;
+                this.credits += gain;
+                localStorage.setItem('subnet_credits', this.credits);
                 
-                const savedCode = localStorage.getItem('subnet_lift_code');
-                if (savedCode) document.getElementById('code-editor').value = savedCode;
-                document.getElementById('high-score-value').innerText = this.highScore;
+                // Remove passenger
+                this.passengers = this.passengers.filter(x => x.id !== p.id);
             }
 
-            initInput() {
-                let isDragging = false;
-                let lastY = 0;
-                this.canvas.addEventListener('mousedown', e => { isDragging = true; lastY = e.clientY; });
-                window.addEventListener('mousemove', e => {
-                    if (isDragging) {
-                        const dy = e.clientY - lastY;
-                        this.worldY += dy;
-                        lastY = e.clientY;
-                        this.clampScroll();
-                    }
-                });
-                window.addEventListener('mouseup', () => isDragging = false);
-                this.canvas.addEventListener('wheel', e => {
-                    this.worldY -= e.deltaY;
-                    this.clampScroll();
-                }, { passive: true });
+            gameOver(reason) {
+                this.running = false;
+                if(this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('subnet_highscore', this.highScore);
+                }
+                document.getElementById('gameover-reason').textContent = reason || "The vertical order has been breached.";
+                document.getElementById('final-score').textContent = this.score;
+                document.getElementById('gameover-overlay').classList.remove('hidden');
+            }
+
+            draw() {
+                // Update HUD
+                document.getElementById('compliance-val').textContent = Math.max(0, 100 - (this.passengers.filter(p => p.waiting).length * 2.5)) + '%';
+                document.getElementById('credits-val').textContent = this.credits + ' CR';
+                document.getElementById('streak-val').textContent = this.streak.toFixed(1) + 'x';
+                document.getElementById('load-val').textContent = Math.round((this.passengers.filter(p => p.waiting).length / CONFIG.MAX_WAITING) * 100) + '%';
+                document.getElementById('unserved-stat').querySelector('span').textContent = this.unserved;
                 
-                this.canvas.addEventListener('click', e => {
-                    const rect = this.canvas.getBoundingClientRect();
-                    const mx = e.clientX - rect.left;
-                    const my = e.clientY - rect.top;
-                    this.people.forEach(p => {
-                        if (p.state === 'waiting') {
-                            const py = this.canvas.height - (p.startFloor * CONFIG.FLOOR_HEIGHT + 15) + this.worldY;
-                            const dist = Math.sqrt((mx - p.x)**2 + (my - py)**2);
-                            if (dist < 20) { this.callElevator(p.startFloor); }
-                        }
-                    });
-                });
-            }
+                const waiting = this.passengers.filter(p => p.waiting);
+                const avgWait = waiting.length > 0 ? (waiting.reduce((s, p) => s + (Date.now() - p.spawnTime), 0) / waiting.length / 1000).toFixed(1) : "0.0";
+                document.getElementById('avg-wait-val').textContent = avgWait + 's';
 
-            clampScroll() {
-                const maxScroll = (CONFIG.MAX_FLOORS * CONFIG.FLOOR_HEIGHT) - this.canvas.height + 100;
-                this.worldY = Math.min(0, Math.max(-maxScroll, this.worldY));
-            }
-
-            initUI() {
-                const container = document.getElementById('floor-list-container');
-                container.innerHTML = '';
-                for (let i = CONFIG.MAX_FLOORS - 1; i >= 0; i--) {
+                // Render floor strip
+                const strip = document.getElementById('floor-strip');
+                strip.innerHTML = '';
+                for(let i=CONFIG.FLOORS-1; i>=0; i--) {
                     const row = document.createElement('div');
                     row.className = 'floor-row';
-                    row.id = `floor-row-${i}`;
-                    row.innerHTML = `
-                        <div class="floor-num">${i}</div>
-                        <div class="waiting-dots" id="waiting-dots-${i}"></div>
-                        <button class="btn-small" style="position: absolute; right: 10px;" onclick="world.callElevator(${i})">CALL</button>
+                    row.innerHTML = `<div class="floor-num">${i}</div><div class="waiting-dots"></div>`;
+                    const dots = row.querySelector('.waiting-dots');
+                    this.passengers.filter(p => p.waiting && p.floor === i).forEach(p => {
+                        const d = document.createElement('div');
+                        d.className = 'dot';
+                        d.style.color = p.color;
+                        dots.appendChild(d);
+                    });
+                    row.onclick = () => this.mode === 'manual' && this.manualCall(i);
+                    strip.appendChild(row);
+                }
+
+                // Render elevators
+                this.elevators.forEach((e, i) => {
+                    const car = document.getElementById(`car-${i}`);
+                    if(car) {
+                        const shaftH = document.getElementById(`shaft-${i}`).clientHeight;
+                        const floorH = shaftH / CONFIG.FLOORS;
+                        const bottom = e.currentFloor * floorH;
+                        car.style.bottom = `${bottom}px`;
+                        car.querySelector('.car-load').textContent = `${e.load.toFixed(1)}/${e.capacity}`;
+                        const dots = car.querySelector('.car-passengers');
+                        dots.innerHTML = '';
+                        e.passengers.forEach(p => {
+                            const d = document.createElement('div');
+                            d.className = 'dot';
+                            d.style.color = p.color;
+                            dots.appendChild(d);
+                        });
+                        if(e.passengers.some(p => p.type === 'exec')) car.classList.add('exec-heavy');
+                        else car.classList.remove('exec-heavy');
+                    }
+                });
+            }
+
+            renderShafts() {
+                const container = document.getElementById('shafts-container');
+                container.innerHTML = '';
+                this.elevators.forEach((e, i) => {
+                    const shaft = document.createElement('div');
+                    shaft.className = 'shaft';
+                    shaft.id = `shaft-${i}`;
+                    shaft.innerHTML = `
+                        <div class="elevator-car" id="car-${i}">
+                            <div class="car-id">LIFT_${i+1}</div>
+                            <div class="car-load">0/8</div>
+                            <div class="car-passengers"></div>
+                        </div>
                     `;
-                    container.appendChild(row);
-                }
-
-                this.updateModeUI();
-                this.resize();
-                window.addEventListener('resize', () => this.resize());
-                document.getElementById('btn-apply').onclick = () => this.applyScript();
+                    shaft.onclick = () => this.mode === 'manual' && this.manualElevatorSelect(i);
+                    container.appendChild(shaft);
+                });
             }
 
-            resize() {
-                const col = document.getElementById('shaft-column');
-                this.canvas.width = col.clientWidth;
-                this.canvas.height = col.clientHeight;
+            manualCall(floor) {
+                // Find nearest idle elevator
+                let best = null;
+                let minDist = Infinity;
+                this.elevators.forEach(e => {
+                    const dist = Math.abs(e.currentFloor - floor);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        best = e;
+                    }
+                });
+                if(best) best.goToFloor(floor);
             }
 
-            setSimSpeed(speed) {
-                CONFIG.SIM_SPEED = speed;
-                document.querySelectorAll('.speed-toggles button').forEach(b => b.classList.remove('active'));
-                document.getElementById(`speed-${speed}`).classList.add('active');
-            }
-
-            confirmModeSwitch() {
-                const target = this.mode === 'manual' ? 'coding' : 'manual';
-                if (confirm(`SWITCH TO ${target.toUpperCase()} MODE?`)) {
-                    this.mode = target;
-                    localStorage.setItem('subnet_lift_mode', target);
-                    this.updateModeUI();
+            manualElevatorSelect(id) {
+                const f = prompt(`MANUAL_DISPATCH: Elevator ${id+1}. Enter target floor (0-29):`);
+                if(f !== null) {
+                    const floor = parseInt(f);
+                    if(!isNaN(floor)) this.elevators[id].goToFloor(floor);
                 }
             }
 
-            updateModeUI() {
-                const isCoding = this.mode === 'coding';
-                document.getElementById('coding-panel').style.display = isCoding ? 'flex' : 'none';
-                document.getElementById('manual-controls').style.display = isCoding ? 'none' : 'block';
-                document.getElementById('mode-switch-btn').innerText = isCoding ? 'SWITCH_TO_MANUAL' : 'SWITCH_TO_LOGIC';
+            dispatchAll() {
+                const waitingFloors = [...new Set(this.passengers.filter(p => p.waiting).map(p => p.floor))];
+                waitingFloors.forEach(f => this.manualCall(f));
             }
 
-            // Legacy setMode replaced by updateModeUI
-
-            applyUpgrades() {
-                const speedValues = [1.0, 0.6, 0.4, 0.25, 0.15];
-                const capacityValues = [8, 10, 12, 14, 16];
-                
-                CONFIG.SPEED = speedValues[this.upgrades.speed];
-                CONFIG.CAPACITY = capacityValues[this.upgrades.capacity];
-                CONFIG.DOOR_SPEED = this.upgrades.acceleration ? 0.13 : 0.1;
-                CONFIG.NUM_ELEVATORS = 2 + this.upgrades.extraElevators;
-                CONFIG.EXEC_PATIENCE_BUFF = this.upgrades.vipPriority ? 5 : 0;
-                CONFIG.DRONE_POINT_BUFF = this.upgrades.droneReplicator ? 1 : 0;
+            setSimSpeed(s) {
+                this.simSpeed = s;
+                document.querySelectorAll('.speed-btn').forEach(b => {
+                    b.classList.toggle('active', parseInt(b.dataset.speed) === s);
+                });
             }
 
             toggleShop(show) {
-                const overlay = document.getElementById('shop-overlay');
-                overlay.style.display = show ? 'flex' : 'none';
-                if (show) this.renderShop();
+                const el = document.getElementById('shop-overlay');
+                if(show) {
+                    el.classList.remove('hidden');
+                    this.renderShop();
+                } else {
+                    el.classList.add('hidden');
+                }
             }
 
             renderShop() {
                 const grid = document.getElementById('shop-grid');
                 grid.innerHTML = '';
-                
+                document.getElementById('shop-credits').textContent = this.credits;
+
                 const items = [
-                    { id: 'speed', name: 'Elevator Speed', desc: 'Reduce floor travel time.', levels: 5, costs: [100, 300, 800, 1500, 3000] },
-                    { id: 'capacity', name: 'Max Capacity', desc: 'Increase total weight capacity.', levels: 5, costs: [80, 250, 700, 1400, 2800] },
-                    { id: 'acceleration', name: 'Door Boost', desc: 'Reduce open/close time by 30%.', levels: 1, costs: [500] },
-                    { id: 'extraElevators', name: 'Extra Elevator', desc: 'Deploy an additional lift unit.', levels: 2, costs: [2000, 5000] },
-                    { id: 'vipPriority', name: 'VIP Priority', desc: 'Executives get +5s patience.', levels: 1, costs: [1200] },
-                    { id: 'droneReplicator', name: 'Drone Replicator', desc: 'Drones yield +1 extra point.', levels: 1, costs: [1000] }
+                    { id: 'speed', name: 'HYPER_DRIVE', desc: 'Increases elevator travel speed by 15%.', cost: 500 * (this.upgrades.speed + 1), lv: this.upgrades.speed, max: 5 },
+                    { id: 'capacity', name: 'CARGO_EXPANSION', desc: 'Increases car weight capacity by 2 units.', cost: 800 * (this.upgrades.capacity + 1), lv: this.upgrades.capacity, max: 5 },
+                    { id: 'extraLifts', name: 'FLEET_REINFORCEMENT', desc: 'Adds an additional elevator to the system.', cost: 2000 * (this.upgrades.extraLifts + 1), lv: this.upgrades.extraLifts, max: 2 },
+                    { id: 'vip', name: 'VIP_FAST_LANE', desc: 'Executives gain +5s patience through priority routing.', cost: 1500, owned: this.upgrades.vip },
+                    { id: 'droneBonus', name: 'REPLICATOR_BUFF', desc: 'Drones yield +2 CR bonus per delivery.', cost: 1200, owned: this.upgrades.droneBonus }
                 ];
 
                 items.forEach(item => {
-                    const currentLevel = this.upgrades[item.id];
-                    const isMax = currentLevel >= item.levels;
-                    const cost = isMax ? 'MAXED' : item.costs[currentLevel];
-                    
                     const card = document.createElement('div');
                     card.className = 'shop-card';
+                    const isMax = item.lv >= item.max || item.owned;
                     card.innerHTML = `
-                        <h4>${item.name.toUpperCase()}</h4>
+                        <h4>${item.name}</h4>
                         <p>${item.desc}</p>
-                        <div class="label">LEVEL: ${currentLevel} / ${item.levels}</div>
-                        <div class="cost">${isMax ? 'MAXED' : cost + ' CR'}</div>
-                        <button class="btn" ${isMax ? 'disabled' : ''} onclick="world.confirmPurchase('${item.id}', ${cost})">PURCHASE</button>
+                        <div class="cost">${isMax ? 'MAXED' : item.cost + ' CR'}</div>
+                        <button class="btn" ${isMax || this.credits < item.cost ? 'disabled' : ''} onclick="world.buyUpgrade('${item.id}', ${item.cost})">${isMax ? 'OWNED' : 'AUTHORIZE'}</button>
                     `;
                     grid.appendChild(card);
                 });
             }
 
-            confirmPurchase(id, cost) {
-                if (this.credits < cost) { alert("INSUFFICIENT_FUNDS"); return; }
-                const modal = document.getElementById('confirm-modal');
-                const title = document.getElementById('confirm-title');
-                const desc = document.getElementById('confirm-desc');
-                const yesBtn = document.getElementById('confirm-yes');
-                
-                modal.style.display = 'flex';
-                title.innerText = `AUTHORIZE_${id.toUpperCase()}`;
-                desc.innerText = `Proceed with transaction of ${cost} CR?`;
-                yesBtn.onclick = () => {
+            buyUpgrade(id, cost) {
+                if(this.credits >= cost) {
                     this.credits -= cost;
-                    this.upgrades[id]++;
-                    localStorage.setItem('subnet_lift_upgrades', JSON.stringify(this.upgrades));
-                    modal.style.display = 'none';
-                    this.applyUpgrades();
+                    if(typeof this.upgrades[id] === 'number') this.upgrades[id]++;
+                    else this.upgrades[id] = true;
+                    
+                    localStorage.setItem('subnet_credits', this.credits);
+                    localStorage.setItem('subnet_upgrades', JSON.stringify(this.upgrades));
+                    
+                    if(id === 'extraLifts') this.initElevators();
                     this.renderShop();
-                    playSound(660, 'square', 0.2, 0.1);
-                    if (id === 'extraElevators') location.reload(); // Reload to re-init elevators
-                };
-            }
-
-            dispatchAll() {
-                const idleElevators = this.elevators.filter(e => e.state === 'idle');
-                const waitingFloors = this.floors.filter(f => f.people.some(p => p.state === 'waiting'));
-                waitingFloors.sort((a, b) => {
-                    const aWait = Math.max(...a.people.filter(p => p.state === 'waiting').map(p => p.waitTimer));
-                    const bWait = Math.max(...b.people.filter(p => p.state === 'waiting').map(p => p.waitTimer));
-                    return bWait - aWait;
-                });
-                idleElevators.forEach((e, i) => { if (waitingFloors[i]) e.goToFloor(waitingFloors[i].level); });
-            }
-
-            /* --- SIMULATION ENGINE --- */
-            update(dt) {
-                if (this.gameOver || this.paused) return;
-                this.time += dt;
-                this.difficulty = Math.pow(1.2, this.time / 60); // x1.2 per minute
-                this.pulse = (this.pulse + 0.05) % (Math.PI * 2);
-                
-                if (this.mode === 'coding' && this.userUpdate) { try { this.userUpdate(dt, this.elevators, this.floors); } catch(e) { this.logError(e.message); } }
-                
-                this.elevators.forEach(e => {
-                    e.update(dt);
-                    if (e.state === 'open' && e.timer === 1.0) { playSound(880, 'sine', 0.1, 0.05); } 
-                    if (this.mode === 'manual') {
-                        const ctrl = document.getElementById(`elevator-ctrl-${e.id}`);
-                        if (ctrl) {
-                            ctrl.innerHTML = `
-                                <div class="label" style="color:#fff">ELEVATOR_${e.id}</div>
-                                <div style="font-size:10px">FLOOR: ${e.currentFloor}</div>
-                                <div style="font-size:10px">STATE: ${e.state.toUpperCase()}</div>
-                                <div style="font-size:10px">LOAD: ${Math.round(e.loadFactor()*100)}%</div>
-                                <div style="display:flex;gap:5px;margin-top:5px">
-                                    <button class="btn-small" onclick="world.setTarget(${e.id})">TARGET</button>
-                                    <button class="btn-small" onclick="world.goNearest(${e.id})">NEAREST</button>
-                                    <button class="btn-small" onclick="world.stopElevator(${e.id})">IDLE</button>
-                                </div>
-                            `;
-                        }
-                    }
-                });
-
-                this.people.forEach(p => {
-                    p.update(dt);
-                    if (p.state === 'waiting') {
-                        if (p.waitTimer > p.maxWait) {
-                            p.state = 'done';
-                            this.credits -= p.penalty;
-                            this.unservedCount++;
-                            playSound(110, 'sawtooth', 0.5, 0.1); 
-                        } else {
-                            const elevator = this.elevators.find(e => {
-                                if (e.currentFloor !== p.startFloor || e.state !== 'open' || e.boardingTimer > 0) return false;
-                                if (e.currentWeight() + p.weight > e.capacity) return false;
-                                if (e.direction === 0) return true;
-                                const pDir = p.targetFloor > p.startFloor ? 1 : -1;
-                                return pDir === e.direction;
-                            });
-                            if (elevator) {
-                                p.state = 'inside';
-                                p.elevator = elevator;
-                                elevator.passengers.push(p);
-                                elevator.boardingTimer = 0.5;
-                                elevator.emit('floor_button_pressed', p.targetFloor);
-                                if (this.mode === 'manual') elevator.goToFloor(p.targetFloor);
-                            }
-                        }
-                    }
-                    if (p.state === 'inside' && p.elevator.currentFloor === p.targetFloor && p.elevator.state === 'open') {
-                        p.state = 'done';
-                        this.transported++;
-                        this.totalWaitTime += p.waitTimer;
-                        const now = Date.now();
-                        if (now - this.lastDeliveryTime < 5000) { this.streakCount++; } else { this.streakCount = 0; }
-                        this.lastDeliveryTime = now;
-                        const streakMultiplier = 1 + (this.streakCount * 0.1);
-                        let reward = p.reward;
-                        if (p.waitTimer < p.maxWait / 2) { reward *= 1.5; }
-                        if (p.waitTimer > p.maxWait / 2) { reward = Math.max(0, reward - Math.floor(p.waitTimer - p.maxWait / 2)); }
-                        this.credits += Math.floor(reward * streakMultiplier);
-                        if (this.credits > this.highScore) {
-                            this.highScore = this.credits;
-                            localStorage.setItem('subnet_lift_highscore', this.highScore);
-                        }
-                        p.elevator.passengers = p.elevator.passengers.filter(pass => pass !== p);
-                    }
-                });
-
-                this.people = this.people.filter(p => p.state !== 'done');
-                this.spawnTimer += dt;
-                const spawnInterval = (3.0 / this.difficulty); 
-                if (this.spawnTimer >= spawnInterval) {
-                    this.spawnTimer = 0;
-                    this.spawnPerson();
-                }
-
-                // Loss conditions & Warnings
-                const waitingCount = this.people.filter(p => p.state !== 'inside').length;
-                const loadEl = document.getElementById('load-value');
-                loadEl.classList.toggle('warning-pulse', waitingCount > 25);
-                
-                if (waitingCount >= 40 || this.unservedCount >= 20) this.endGame();
-                if (this.compliance < 20 && Math.random() < 0.05) playSound(150, 'triangle', 0.2, 0.05); 
-            }
-
-                const waitingCount = this.people.filter(p => p.state === 'waiting').length;
-                document.getElementById('load-value').innerText = Math.round((waitingCount/CONFIG.LOSS_THRESHOLD)*100) + "%";
-                document.getElementById('credits-value').innerText = this.credits;
-                
-                // Update Multi-Stats
-                const avgWait = this.transported > 0 ? (this.totalWaitTime / this.transported) : 0;
-                document.getElementById('avg-wait-value').innerText = avgWait.toFixed(1) + "s";
-                
-                const streakDisplay = 1 + (this.streakCount * 0.1);
-                const streakEl = document.getElementById('streak-value');
-                streakEl.innerText = streakDisplay.toFixed(1) + "x";
-                streakEl.style.textShadow = this.streakCount > 0 ? `0 0 10px var(--secondary)` : 'none';
-
-                this.compliance = Math.max(0, 100 - (maxWait / CONFIG.WAIT_TIME_CAP) * 100);
-                document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
-                if (this.compliance <= 0 || waitingCount >= CONFIG.LOSS_THRESHOLD) this.endGame();
-            }
-
-            setTarget(id) {
-                const floor = prompt("Enter target floor (0-29):");
-                if (floor !== null) this.elevators[id].goToFloor(parseInt(floor));
-            }
-
-            goNearest(id) {
-                const e = this.elevators[id];
-                const waiting = this.floors.filter(f => f.people.some(p => p.state === 'waiting'));
-                if (waiting.length > 0) {
-                    waiting.sort((a, b) => Math.abs(a.level - e.currentFloor) - Math.abs(b.level - e.currentFloor));
-                    e.goToFloor(waiting[0].level);
                 }
             }
 
-            stopElevator(id) { this.elevators[id].stop(); }
-
-            callElevator(floorIndex) {
-                if (this.gameOver) return;
-                if (this.mode === 'manual') {
-                    let nearest = this.elevators[0];
-                    let minDist = Infinity;
-                    this.elevators.forEach(e => {
-                        const dist = Math.abs(e.currentFloor - floorIndex);
-                        if (dist < minDist) { minDist = dist; nearest = e; }
-                    });
-                    nearest.goToFloor(floorIndex);
+            toggleLogicUI(show) {
+                const panel = document.getElementById('code-terminal');
+                const btn = document.getElementById('mode-toggle-btn');
+                if(show) {
+                    panel.classList.remove('hidden');
+                    btn.textContent = 'SWITCH_TO_MANUAL';
+                } else {
+                    panel.classList.add('hidden');
+                    btn.textContent = 'SWITCH_TO_LOGIC';
                 }
-                const btn = document.getElementById(`floor-btn-${floorIndex}`);
-                if (!btn.classList.contains('active')) { btn.classList.add('active'); playSound(440, 'square', 0.05, 0.02); }
-                this.floors[floorIndex].emit('button_pressed');
             }
 
-            spawnPerson() {
-                const rand = Math.random();
-                let type, start, target;
-
-                if (rand < 0.15) { // 15% EXECUTIVES
-                    type = 'EXEC';
-                    start = Math.random() < 0.5 ? Math.floor(Math.random() * 6) : 25 + Math.floor(Math.random() * 5);
-                    target = Math.random() < 0.8 ? 20 + Math.floor(Math.random() * 10) : Math.floor(Math.random() * 6);
-                    while (target === start) target = Math.floor(Math.random() * 6);
-                } else if (rand < 0.5) { // 35% WORKERS
-                    type = 'WORKER';
-                    start = 6 + Math.floor(Math.random() * 14);
-                    target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
-                    while (target === start) target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
-                } else { // 50% DRONES
-                    type = 'DRONE';
-                    start = Math.floor(Math.random() * 25);
-                    // heavily skewed to lower half
-                    target = Math.floor(Math.pow(Math.random(), 2) * CONFIG.MAX_FLOORS);
-                    while (target === start) target = Math.floor(Math.random() * CONFIG.MAX_FLOORS);
+            confirmModeSwitch() {
+                const next = this.mode === 'manual' ? 'logic' : 'manual';
+                if(confirm(`Protocol shift requested: Switch to ${next.toUpperCase()}? Current simulation state will persist.`)) {
+                    this.mode = next;
+                    this.toggleLogicUI(next === 'logic');
                 }
-
-                const p = new Person(type, start, target);
-                this.people.push(p);
-                this.floors[start].people.push(p);
-                this.floors[start].emit(target > start ? 'up_button_pressed' : 'down_button_pressed');
             }
 
-            /* --- LOGISTICS TERMINAL (CODE MODE) --- */
-            applyScript() {
-                const code = document.getElementById('code-editor').value;
-                localStorage.setItem('subnet_lift_code', code);
-                this.log("EXECUTING_PROTOCOL...");
+            deployScript() {
+                const code = document.getElementById('editor').value;
                 try {
-                    // Reset listeners to prevent stacking
-                    this.elevators.forEach(e => e.listeners = {});
-                    this.floors.forEach(f => f.listeners = {});
-                    
-                    const sandboxConsole = { log: (msg) => this.log(msg) };
-                    const factory = new Function('console', 'elevators', 'floors', `
-                        "use strict";
-                        try {
-                            const protocol = ${code};
-                            return protocol;
-                        } catch(e) { throw e; }
-                    `);
-                    const protocol = factory(sandboxConsole, this.elevators, this.floors);
-                    if (protocol.init) protocol.init(this.elevators, this.floors);
-                    this.userUpdate = protocol.update;
-                    this.log("PROTOCOL_STABLE");
-                } catch (e) {
-                    this.logError(e.message);
+                    const setup = new Function(`return ${code}`)();
+                    if (typeof setup === 'function') {
+                        this.userScript = setup;
+                        this.logConsole("Protocol deployed successfully.");
+                    } else {
+                        this.logConsole("Error: Script must return a function.");
+                    }
+                } catch(e) {
+                    this.logConsole("Compilation Error: " + e.message);
                 }
             }
 
-            log(msg) {
-                const el = document.getElementById('console-log');
-                if (!el) return;
-                el.innerHTML += `<div>> ${msg}</div>`;
-                el.scrollTop = el.scrollHeight;
-            }
-
-            logError(msg) {
-                const el = document.getElementById('console-log');
-                if (!el) return;
-                el.innerHTML += `<div style="color:var(--accent)">> ERROR: ${msg}</div>`;
-                el.scrollTop = el.scrollHeight;
-            }
-
-            /* --- UI RENDERING ENGINE --- */
-            draw() {
-                const ctx = this.ctx;
-                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                const worldY = this.worldY;
-                const startX = (this.canvas.width - (CONFIG.NUM_ELEVATORS * 150)) / 2;
-
-                // Draw Shafts
-                this.elevators.forEach((e, i) => {
-                    const x = startX + i * 150;
-                    ctx.strokeStyle = 'rgba(0, 240, 255, 0.1)';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(x - 5, 0, CONFIG.ELEVATOR_WIDTH + 10, this.canvas.height);
-                    
-                    // Elevator Box
-                    const ey = this.canvas.height - (e.y + CONFIG.ELEVATOR_HEIGHT) + worldY;
-                    ctx.fillStyle = 'rgba(13, 13, 13, 0.9)';
-                    ctx.strokeStyle = e.state === 'idle' ? 'var(--primary)' : 'var(--accent)';
-                    ctx.lineWidth = 3;
-                    ctx.fillRect(x, ey, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
-                    ctx.strokeRect(x, ey, CONFIG.ELEVATOR_WIDTH, CONFIG.ELEVATOR_HEIGHT);
-
-                    // Passengers inside as dots
-                    e.passengers.forEach((p, pi) => {
-                        const px = x + 10 + (pi % 5) * 10;
-                        const py = ey + 10 + Math.floor(pi / 5) * 10;
-                        ctx.fillStyle = p.color;
-                        ctx.beginPath();
-                        ctx.arc(px, py, 3, 0, Math.PI * 2);
-                        ctx.fill();
-                    });
-
-                    // Elevator Label
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '10px JetBrains Mono';
-                    ctx.fillText(`E${e.id}`, x + 5, ey + CONFIG.ELEVATOR_HEIGHT - 5);
-                    ctx.fillText(e.state.toUpperCase(), x + 5, ey + CONFIG.ELEVATOR_HEIGHT - 15);
-                });
-
-                // Update Floor Column Indicators
-                this.floors.forEach(f => {
-                    const row = document.getElementById(`floor-row-${f.level}`);
-                    if (!row) return;
-                    
-                    const hasElevator = this.elevators.some(e => e.currentFloor === f.level && e.state === 'open');
-                    row.classList.toggle('active', hasElevator);
-
-                    const dotContainer = document.getElementById(`waiting-dots-${f.level}`);
-                    dotContainer.innerHTML = '';
-                    f.people.filter(p => p.state === 'waiting').forEach(p => {
-                        const dot = document.createElement('div');
-                        dot.className = 'dot';
-                        dot.style.color = p.color;
-                        dot.style.backgroundColor = p.color;
-                        dotContainer.appendChild(dot);
-                    });
-                });
-
-                // HUD Stats
-                const minutes = Math.floor(this.time / 60);
-                const seconds = Math.floor(this.time % 60);
-                document.getElementById('clock-display').innerText = `TIME: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                const avgWait = this.transported > 0 ? (this.totalWaitTime / this.transported) : 0;
-                document.getElementById('avg-wait-value').innerText = avgWait.toFixed(1) + "s";
-                
-                const streakDisplay = 1 + (this.streakCount * 0.1);
-                const streakEl = document.getElementById('streak-value');
-                streakEl.innerText = streakDisplay.toFixed(1) + "x";
-                streakEl.style.textShadow = this.streakCount > 0 ? `0 0 10px var(--secondary)` : 'none';
-                
-                const waitingCount = this.people.filter(p => p.state !== 'inside').length;
-                document.getElementById('load-value').innerText = waitingCount;
-                document.getElementById('credits-value').innerText = this.credits + " CR";
-                document.getElementById('compliance-value').innerText = Math.round(this.compliance) + "%";
-                document.getElementById('unserved-display').innerHTML = `UNSERVED: <span style="color:var(--accent)">${this.unservedCount}</span> / 20`;
-            }
-
-            endGame() {
-                this.gameOver = true;
-                const overlay = document.createElement('div');
-                overlay.className = 'overlay-screen';
-                overlay.innerHTML = `
-                    <h1 class="glitch-text" style="font-size:48px;margin-bottom:20px;color:#ff00c8;text-shadow:0 0 20px #ff00c8">ORDER_BREACHED</h1>
-                    <p style="font-size:18px;margin-bottom:40px;color:#00f0ff">The vertical order has collapsed. You have been recycled.</p>
-                    <div style="font-size:24px;margin-bottom:40px">UNITS_PROCESSED: ${this.transported}</div>
-                    <div style="font-size:18px;margin-bottom:40px">FINAL_CREDITS: ${this.credits}</div>
-                    <div style="display:flex;gap:20px">
-                        <button class="btn btn-secondary" onclick="location.reload()">RE-INITIALIZE</button>
-                    </div>
-                `;
-                document.body.appendChild(overlay);
-                playSound(110, 'sawtooth', 1.5, 0.2);
+            logConsole(msg) {
+                const con = document.getElementById('console');
+                con.innerHTML += `<div>> ${msg}</div>`;
+                con.scrollTop = con.scrollHeight;
             }
         }
 
-        /* --- GLOBAL INITIALIZATION --- */
-        /* --- BOOT SEQUENCE & GLOBAL INIT --- */
-        let world;
-        window.onload = () => {
-            const canvas = document.getElementById('render-canvas');
-            world = new World(canvas);
-        };
+        const world = new World();
 
-        function showModeSelection() {
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('mode-selection').style.display = 'flex';
-            if (AudioCtx.state === 'suspended') AudioCtx.resume();
-        }
+        // UI Event Listeners
+        document.getElementById('manual-start-btn').onclick = () => world.start('manual');
+        document.getElementById('logic-start-btn').onclick = () => world.start('logic');
+        document.getElementById('shop-btn').onclick = () => world.toggleShop(true);
+        document.getElementById('close-shop-btn').onclick = () => world.toggleShop(false);
+        document.getElementById('mode-toggle-btn').onclick = () => world.confirmModeSwitch();
+        document.getElementById('dispatch-all-btn').onclick = () => world.dispatchAll();
+        document.getElementById('deploy-btn').onclick = () => world.deployScript();
+        document.getElementById('restart-btn').onclick = () => location.reload();
 
-        function selectMode(mode) {
-            localStorage.setItem('subnet_lift_mode', mode);
-            document.getElementById('mode-selection').style.display = 'none';
-            document.getElementById('tutorial-overlay').style.display = 'flex';
-        }
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.onclick = () => world.setSimSpeed(parseInt(btn.dataset.speed));
+        });
 
-        function closeTutorial() {
-            document.getElementById('tutorial-overlay').style.display = 'none';
-            initGame();
-        }
-
-        function initGame() {
-            world.mode = localStorage.getItem('subnet_lift_mode') || 'manual';
-            world.updateModeUI();
-            function loop() {
-                const dt = (1/60) * CONFIG.SIM_SPEED;
-                world.update(dt);
-                world.draw();
-                requestAnimationFrame(loop);
-            }
-            loop();
-        }
     </script>
 </body>
 </html>
