@@ -485,8 +485,41 @@ function update(dt, elevators, floors) { }</textarea>
     </div>
   </div>
   <script>
-    // Initializing...
-    console.log("SUBNET LIFT v2.0 Initializing...");
-  </script>
+    // ──────────────────────────────────
+    // CORE GAME ENGINE (identical logic, improved UI bindings)
+    // ──────────────────────────────────
+    (() => {
+      const TOTAL_FLOORS = 30;
+      const MAX_ELEVATORS = 4;
+      const INITIAL_ELEVATORS = 2;
+      const BASE_SPEED = 1.0;
+      const DOOR_TIME = 0.5;
+      const MAX_WAITING = 40;
+      const MAX_UNSERVED = 20;
+      const WARN_THRESHOLD = 25;
+
+      // State
+      let gameMode = 'manual'; // 'manual' | 'code'
+      let score = 0, credits = 0, streakCount = 0, lastDelivery = -10;
+      let totalDelivered = 0, totalWait = 0, unserved = 0;
+      let highScore = parseInt(localStorage.getItem('subnetHighScore') || '0');
+      let gameSpeed = 1, gameTime = 0, spawnTimer = 0;
+      let difficulty = 1.0;
+      let allPassengers = [];
+      let elevators = [], floorsData = [];
+      let codeActive = false, userScript = null;
+      let upgrades = JSON.parse(localStorage.getItem('subnetUpgrades') || '{"speed":0,"capacity":0,"door":false,"elev3":false,"elev4":false,"vip":false,"drone":false}');
+
+      // DOM
+      const floorPanel = document.getElementById('floor-panel');
+      const shaftArea = document.getElementById('shaft-area');
+      const complianceEl = document.getElementById('compliance-val');
+      const creditsEl = document.getElementById('credits-val');
+      const streakEl = document.getElementById('streak-val');
+      const avgWaitEl = document.getElementById('avg-wait-val');
+      const unservedEl = document.getElementById('unserved-val');
+      const highscoreEl = document.getElementById('highscore-val');
+      const modeIndicator = document.getElementById('mode-indicator');
+      const dispatchBtn = document.getElementById('dispatch-btn');
 </body>
 </html>
