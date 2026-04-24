@@ -8,9 +8,172 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    /* CSS DESIGN SYSTEM placeholder - to be updated in next commit */
-    body { background: #000; color: #fff; }
-  </style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111122;
+      --panel: #15152a;
+      --border: #2a2a45;
+      --text: #c8ccd6;
+      --dim: #6b6f82;
+      --accent: #00e5ff;
+      --accent-glow: rgba(0, 229, 255, 0.6);
+      --exec: #ff2d95;
+      --worker: #00c8ff;
+      --drone: #3cdd4b;
+      --warning: #ffb800;
+      --danger: #ff4444;
+      --btn-bg: #1e1e35;
+      --btn-hover: #2a2a50;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-display: 'Orbitron', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      font-family: var(--font-mono);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+    }
+
+    /* subtle scanlines */
+    body::after {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* top bar */
+    #header {
+      height: 48px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 20;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    }
+    #header .logo {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.3rem;
+      color: var(--accent);
+      text-shadow: 0 0 14px var(--accent-glow);
+      letter-spacing: 3px;
+    }
+    .mode-badge {
+      font-size: 0.7rem;
+      background: #0f0f1e;
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-family: var(--font-display);
+      color: var(--dim);
+      letter-spacing: 1px;
+    }
+    .mode-badge.active-mode {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    /* main layout */
+    #main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* floor panel (left) */
+    #floor-panel {
+      width: 160px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 0;
+      flex-shrink: 0;
+    }
+    .floor-entry {
+      display: flex;
+      align-items: center;
+      height: 36px;
+      padding: 4px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: background 0.15s;
+      cursor: pointer;
+      gap: 6px;
+    }
+    .floor-entry:hover {
+      background: rgba(255,255,255,0.04);
+    }
+    .floor-num {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      color: var(--dim);
+      width: 32px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .wait-indicator {
+      display: flex;
+      gap: 3px;
+      flex: 1;
+      align-items: center;
+    }
+    .wait-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: #333;
+    }
+    .wait-dot.exec { background: var(--exec); box-shadow: 0 0 6px var(--exec); }
+    .wait-dot.worker { background: var(--worker); box-shadow: 0 0 6px var(--worker); }
+    .wait-dot.drone { background: var(--drone); box-shadow: 0 0 6px var(--drone); }
+    .call-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--border);
+      color: var(--dim);
+      font-family: var(--font-display);
+      font-size: 0.6rem;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+    .call-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+    .call-btn.called {
+      border-color: var(--warning);
+      color: var(--warning);
+      animation: pulse 0.7s infinite;
+    }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 5px var(--warning); } 50% { box-shadow: 0 0 18px var(--warning); } }
 </head>
 <body>
   <div id="header">
