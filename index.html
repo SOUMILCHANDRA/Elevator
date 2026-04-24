@@ -410,7 +410,10 @@
     <!-- HUD -->
     <div id="hud">
       <div class="hud-group">
-        <div class="hud-label">COMPLIANCE</div>
+        <div class="hud-label">SECTOR INTEGRITY</div>
+        <div id="integrity-bar-bg" style="height:4px; background:#222; border-radius:2px; overflow:hidden; margin-bottom:8px;">
+          <div id="integrity-bar-fill" style="height:100%; width:100%; background:var(--drone); transition: width 0.3s, background 0.3s;"></div>
+        </div>
         <div class="hud-value" id="compliance-val">100%</div>
       </div>
       <div class="hud-group">
@@ -721,6 +724,11 @@ function update(dt, elevators, floors) { }</textarea>
       function updateHUD() {
         let waiting=allPassengers.length, comp=waiting<=WARN_THRESHOLD?100:Math.max(0,100-(waiting-WARN_THRESHOLD)*3);
         complianceEl.textContent=Math.round(comp)+'%'; complianceEl.className='hud-value'+(comp<50?' danger-value':'');
+        
+        const bar = document.getElementById('integrity-bar-fill');
+        bar.style.width = comp + '%';
+        bar.style.background = comp < 30 ? 'var(--danger)' : (comp < 70 ? 'var(--warning)' : 'var(--drone)');
+
         creditsEl.textContent=credits+' CR';
         streakEl.textContent=(1+(streakCount-1)*0.1).toFixed(1)+'x';
         avgWaitEl.textContent=(totalDelivered? (totalWait/totalDelivered).toFixed(1):'0')+'s';
