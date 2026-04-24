@@ -640,6 +640,7 @@ function update(dt, elevators, floors) { }</textarea>
         on(ev,cb) { if(!this.handlers[ev]) this.handlers[ev]=[]; this.handlers[ev].push(cb); }
         trigger(ev,data) { (this.handlers[ev]||[]).forEach(cb=>{try{cb(data)}catch(e){}}); }
         goToFloor(f) {
+          if(isNaN(f)) return;
           f=Math.max(0,Math.min(TOTAL_FLOORS-1,Math.floor(f)));
           if(!this.queue.includes(f)) this.queue.push(f);
           if(this.state==='idle') this.processQueue();
@@ -760,7 +761,15 @@ function update(dt, elevators, floors) { }</textarea>
           let shaft=document.createElement('div'); shaft.className='shaft'; shaft.id='shaft-'+i;
           let car=document.createElement('div'); car.className='elevator-car'; car.id='car-'+i;
           car.innerHTML=`<span class="car-id">E${i+1}</span><div class="car-passengers"></div><span class="car-stats">0/${getCapacity()}</span>`;
-          car.onclick=()=>{ if(gameMode==='manual'){ let f=prompt(`Elevator ${i+1} target floor?`); if(f!==null) elevators[i].goToFloor(parseInt(f)); }};
+          car.onclick=()=>{
+            if(gameMode==='manual'){
+              let f=prompt(`Elevator ${i+1} target floor (0-29)?`);
+              if(f!==null && f.trim() !== "") {
+                let target = parseInt(f);
+                if(!isNaN(target)) elevators[i].goToFloor(target);
+              }
+            }
+          };
           shaft.appendChild(car);
           shaftArea.appendChild(shaft);
         }
