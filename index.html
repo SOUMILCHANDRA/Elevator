@@ -193,30 +193,34 @@
     #shaft-area {
       flex: 1;
       position: relative;
-      background: radial-gradient(ellipse at center top, #0d0d20 0%, #08080f 100%);
+      background: linear-gradient(rgba(10,10,20,0.8), rgba(10,10,20,0.8)), url('assets/background.png');
+      background-size: cover;
+      background-position: center;
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 40px;
       padding: 20px 40px;
+      box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
     }
     .shaft {
-      width: 70px;
+      width: 80px;
       height: 100%;
       position: relative;
-      background: rgba(12,12,24,0.6);
-      border: 1px solid #222244;
-      border-radius: 6px;
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+      background: rgba(12,12,24,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      backdrop-filter: blur(2px);
     }
     .elevator-car {
       position: absolute;
       left: 5px;
       right: 5px;
-      height: 52px;
-      background: rgba(10,20,30,0.9);
-      border: 2px solid var(--accent);
-      border-radius: 6px;
+      height: 60px;
+      background: rgba(10,20,30,0.7);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -238,6 +242,22 @@
       font-size: 0.5rem;
       color: #aaa;
     }
+    .elevator-car .car-passengers {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2px;
+      margin-top: 2px;
+      max-width: 90%;
+    }
+    .elevator-car .car-passengers .pass-sprite {
+      width: 6px;
+      height: 9px;
+      background-size: 300% 100%;
+      background-repeat: no-repeat;
+      background-image: url('assets/sprites.png');
+      filter: brightness(1.5);
+    }
     .elevator-car.moving {
       border-style: dashed;
       animation: buzz 0.4s infinite;
@@ -246,6 +266,32 @@
     .elevator-car.exec-presence {
       border-color: var(--exec);
       animation: flicker 2s infinite;
+    }
+
+    .wait-dot {
+      width: 14px;
+      height: 20px;
+      border-radius: 2px;
+      background-size: 300% 100%;
+      background-repeat: no-repeat;
+      display: inline-block;
+      filter: drop-shadow(0 0 5px currentColor);
+      opacity: 0.9;
+    }
+    .wait-dot.exec { 
+      background-image: url('assets/sprites.png'); 
+      background-position: 0% center; 
+      color: var(--exec); 
+    }
+    .wait-dot.worker { 
+      background-image: url('assets/sprites.png'); 
+      background-position: 50% center; 
+      color: var(--worker); 
+    }
+    .wait-dot.drone { 
+      background-image: url('assets/sprites.png'); 
+      background-position: 100% center; 
+      color: var(--drone); 
     }
 
     @keyframes flicker {
@@ -701,7 +747,7 @@ function update(dt, elevators, floors) { }</textarea>
         for(let i=0;i<elevators.length;i++) {
           let shaft=document.createElement('div'); shaft.className='shaft'; shaft.id='shaft-'+i;
           let car=document.createElement('div'); car.className='elevator-car'; car.id='car-'+i;
-          car.innerHTML=`<span class="car-id">E${i+1}</span><span class="car-stats">0/${getCapacity()}</span>`;
+          car.innerHTML=`<span class="car-id">E${i+1}</span><div class="car-passengers"></div><span class="car-stats">0/${getCapacity()}</span>`;
           car.onclick=()=>{ if(gameMode==='manual'){ let f=prompt(`Elevator ${i+1} target floor?`); if(f!==null) elevators[i].goToFloor(parseInt(f)); }};
           shaft.appendChild(car);
           shaftArea.appendChild(shaft);
@@ -713,10 +759,16 @@ function update(dt, elevators, floors) { }</textarea>
           let car=document.getElementById('car-'+i); if(!car) continue;
           let shaft=document.getElementById('shaft-'+i); if(!shaft) continue;
           let frac=(TOTAL_FLOORS-1-elevators[i].floor)/(TOTAL_FLOORS-1);
-          car.style.top=(frac*(shaft.clientHeight-52))+'px';
+          car.style.top=(frac*(shaft.clientHeight-62))+'px';
           car.classList.toggle('moving',elevators[i].state.startsWith('moving'));
           car.classList.toggle('exec-presence',elevators[i].pass.some(p=>p.cls==='exec'));
           car.querySelector('.car-stats').textContent=elevators[i].loadWeight().toFixed(1)+'/'+getCapacity();
+          
+          let passContainer=car.querySelector('.car-passengers');
+          passContainer.innerHTML=elevators[i].pass.map(p=>{
+            let pos=p.cls==='exec'?'0%':(p.cls==='worker'?'50%':'100%');
+            return `<div class="pass-sprite" style="background-position:${pos} center;"></div>`;
+          }).join('');
         }
       }
 
