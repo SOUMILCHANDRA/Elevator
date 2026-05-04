@@ -23,3 +23,7 @@
 
 ---
 **MAINTAIN THE ORDER. EARN YOUR CREDITS.**
+
+## AUTHOR
+
+Soumil Chandra
